@@ -6,7 +6,7 @@
 
 ## 開發狀態與支援版本
 
-目前為 **v0.1.0 候選版**。2026-10-21 已確認 Uxbridge 語音／動作、關閉接收不動作，以及重新啟用／重載後的新口令。最後候選版檢查進行中，**尚無正式 tag／release**；其他音箱須明確同意試用，仍屬未驗證。
+**v0.1.0** 已於 2026-10-21 通過自動檢查及限定範圍的 Marshall Uxbridge 實機驗收。多帳號、多音箱與恢復功能有軟體測試；其他音箱仍需明確同意試用，並維持未驗證。精確版本、實測內容與限制見 [驗收報告](docs/hardware-acceptance.md)。
 
 需要 **HA Core 2026.10.2**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
 
@@ -15,11 +15,11 @@
 選擇一種方式：
 
 - **手動：**下載專案，僅將 `custom_components/alexa_voice_events` 複製到 HA 設定目錄的 `custom_components/` 下（通常是 `/config/custom_components/alexa_voice_events`），重新啟動 HA。
-- **HACS 自訂儲存庫：**HACS → ⋮ → 自訂儲存庫，新增 `https://github.com/vincent97277/ha-alexa-voice-events`，類別選 **Integration**，下載 Alexa Voice Events，再重新啟動 HA。本專案未加入 HACS 預設商店；首個 release 前會安裝預設分支，內容會隨開發更新。
+- **HACS 自訂儲存庫：**HACS → ⋮ → 自訂儲存庫，新增 `https://github.com/vincent97277/ha-alexa-voice-events`，類別選 **Integration**，下載 Alexa Voice Events，再重新啟動 HA。本專案未加入 HACS 預設商店；需要固定版本時選正式 tag；若改選預設分支，則是會隨開發更新的程式。
 
 在 HA → 設定 → 裝置與服務 → 新增整合，選 **Alexa Voice Events**，選取既有 Alexa Devices 帳號與音箱。每個帳號最多一個項目，可選多個音箱；其他帳號另加項目，不能跨帳號選音箱。
 
-開發分支現以實際觀測到的 Core 2026.10.2 為目標。另記安裝 commit，不能只看 manifest 版本。先前 `4944eea` 是 Core 2026.10.1 的歷史發佈基準，不是這次候選版。正式實機驗收後才建立對應整合與 Blueprint 版本標籤；版本差異見 [相容性查核](docs/compatibility.md)。
+本版以 Core 2026.10.2 為目標。可下載 [v0.1.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0)，或供手動安裝的 [原始碼壓縮檔](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.1.0.zip)。另記安裝 tag／commit，不能只看 manifest 版本。正式版的元件與 Blueprint 和實機測過的 `85e21d4` 完全相同，其後只有發行文件更新；先前 `4944eea` 為 Core 2026.10.1 歷史基準。版本差異見 [相容性查核](docs/compatibility.md)。
 
 ## 設定與日常使用
 
@@ -36,14 +36,14 @@ Marshall Uxbridge 依已記錄的 Uxbridge 查核建議 `volume_push`，首次�
 HA → 設定 → 自動化與場景 → Blueprint → 匯入，貼上：
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.1.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
 匯入與整合安裝彼此獨立，不會自動建立家庭自動化。從 Blueprint 建立自動化，選音箱的語音事件、每行填一個完整口令，再選 HA 動作。比對會去除首尾空白、合併空白並轉小寫；若實際文字含 `alexa`，口令也要包含。複雜情境用 HA 自動化；官方 Alexa Devices 的播報等動作可直接在 HA 使用。
 
 預設 `queued`、`max: 10`，可在建立後的自動化 YAML 調整。排隊動作執行前重新檢查十五秒內的新鮮度、接收開關與 session；已執行中的任意使用者動作由 HA 管理。切換家庭動作時停用重疊的舊接收者，避免重複執行。
 
-語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。候選版已透過 HACS 安裝到測試的 Uxbridge 環境，精確版本與剩餘檢查見驗收報告；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
+語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。本版執行程式已透過 HACS 安裝到測試的 Uxbridge 環境並經確認，精確版本與限制見驗收報告；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
 
 ## 開發與授權
 
