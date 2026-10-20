@@ -3,6 +3,7 @@
 from collections.abc import Callable, Iterable
 
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -24,8 +25,16 @@ class ReceiverEntity(Entity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        self.async_on_remove(self.receiver.subscribe(self.async_write_ha_state))
+        self.async_on_remove(self.receiver.subscribe(self._updated))
         self.async_on_remove(self.receiver.subscribe_removed(self.async_remove))
+
+    def _updated(self) -> None:
+        device = dr.async_get(self.hass).async_get(self.receiver.device_id)
+        if device is not None and (self.device_entry is None or self.device_entry.id != device.id):
+            self.device_entry = device
+            if self.registry_entry is not None:
+                er.async_get(self.hass).async_update_entity(self.entity_id, device_id=device.id)
+        self.async_write_ha_state()
 
 
 def setup_speakers(

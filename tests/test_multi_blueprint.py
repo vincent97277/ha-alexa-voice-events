@@ -21,7 +21,7 @@ async def queue_size(hass, size):
     assert hass.states.get("automation.test_voice").attributes["current"] == size
 
 
-@pytest.mark.parametrize("revoke", [False, True])
+@pytest.mark.parametrize("revoke", [False, True, "rebind"])
 async def test_blueprint_binds_rapid_snapshots_and_revocation_to_their_account_and_speaker(
     hass, upstream, upstream_factory, remote_history, freezer, revoke
 ):
@@ -100,15 +100,25 @@ async def test_blueprint_binds_rapid_snapshots_and_revocation_to_their_account_a
             await other.api._http2_push_event_handler("PUSH_EQUALIZER_STATE_CHANGE", {})
             await queue_size(hass, 4)
             expected.append(dict(hass.states.get(c["event"]).attributes))
-            if revoke:
+            if revoke is True:
                 await hass.services.async_call(
                     "switch", "turn_off", {"entity_id": a["switch"]}, blocking=True
                 )
+            elif revoke == "rebind":
+                expected.pop(1)  # Both queued records from this account lose authority.
+
+                async def restore(_hass, account):
+                    account.runtime_data = upstream
+                    return True
+
+                with patch("homeassistant.components.alexa_devices.async_setup_entry", restore):
+                    assert await hass.config_entries.async_reload(upstream.config_entry.entry_id)
         finally:
             release.set()
         await hass.async_block_till_done(wait_background_tasks=True)
         assert captured == expected
         assert captured[0]["reception_entity_id"] == a["switch"]
-        assert captured[1]["reception_entity_id"] == b["switch"]
+        if revoke != "rebind":
+            assert captured[1]["reception_entity_id"] == b["switch"]
         assert captured[-1]["reception_entity_id"] == c["switch"]
         assert captured[0]["device_id"] != captured[-1]["device_id"]

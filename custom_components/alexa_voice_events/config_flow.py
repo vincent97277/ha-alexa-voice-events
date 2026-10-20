@@ -162,9 +162,21 @@ class VoiceConfigFlow(SpeakerSteps, ConfigFlow, domain=DOMAIN):
         )
 
     def finish(self) -> ConfigFlowResult:
+        account = self.account()
+        if account is None:
+            return self.async_abort(reason="account_not_loaded")
         return self.async_create_entry(
             title="Alexa Voice Events",
-            data={"alexa_entry_id": self.account_id},
+            data={
+                "alexa_entry_id": self.account_id,
+                "devices": {
+                    serial: {
+                        "device_type": account.runtime_data.data[serial].device_type,
+                        "name": account.runtime_data.data[serial].account_name,
+                    }
+                    for serial in self.selected
+                },
+            },
             options={"speakers": self.selected},
         )
 

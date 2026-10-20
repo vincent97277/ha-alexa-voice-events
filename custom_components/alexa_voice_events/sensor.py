@@ -52,4 +52,11 @@ class ReceptionSensor(ReceiverEntity, SensorEntity):
             "method": self.receiver.config["method"],
             "validation_scope": self.receiver.validation_scope,
             "new_hardware_acceptance": "pending",
+            "consecutive_failures": self.receiver.account.consecutive_failures
+            if self.receiver.config["method"] == "volume_push"
+            else 0,
+            "retry_at": self.receiver.account.retry_at.isoformat()
+            if self.receiver.config["method"] == "volume_push"
+            and self.receiver.account.consecutive_failures
+            else None,
         }

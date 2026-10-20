@@ -42,6 +42,7 @@ async def upstream_factory(hass: HomeAssistant):
         )
         entry.add_to_hass(hass)
         coordinator = AmazonDevicesCoordinator(hass, entry, async_get_clientsession(hass))
+        coordinator.update_interval = None
         device = SimpleNamespace(
             account_name="Test speaker",
             device_type="A20E9PVI3HANVQ",

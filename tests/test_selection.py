@@ -72,7 +72,7 @@ def entities_for(hass, entry, serial):
     return {
         entity.domain
         if entity.domain != "sensor"
-        else entity.entity_id.rsplit("_", 1)[-1]: entity.entity_id
+        else entity.original_name.lower().replace(" ", "_"): entity.entity_id
         for entity in er.async_entries_for_config_entry(registry, entry.entry_id)
         if entity.device_id == native_device.id
     }
