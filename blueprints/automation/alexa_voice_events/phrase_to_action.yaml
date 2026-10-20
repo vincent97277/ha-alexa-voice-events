@@ -4,8 +4,9 @@ blueprint:
     Match literal Alexa Voice Events phrases and run your HA actions.
     Reception off, revoked sessions and stale queued events are rejected.
   domain: automation
+  source_url: https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
   homeassistant:
-    min_version: "2026.10.1"
+    min_version: "2026.10.2"
   input:
     voice_entities:
       name: Speakers' voice event entities

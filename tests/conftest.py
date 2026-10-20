@@ -23,7 +23,7 @@ def hass_config_dir(tmp_path):
 @pytest.fixture(autouse=True)
 def target_environment(enable_custom_integrations):
     """Fail if the locked harness stops testing the declared baseline."""
-    assert core_version == "2026.10.1"
+    assert core_version == "2026.10.2"
     assert version("aioamazondevices") == "16.3.2"
 
 

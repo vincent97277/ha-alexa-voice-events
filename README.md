@@ -10,7 +10,7 @@ This is a public **development build**. Multi-account/multi-speaker selection an
 
 ## Installation
 
-Requires **Home Assistant Core 2026.10.1** and its official **Alexa Devices** integration using **aioamazondevices 16.3.2**. Add/authenticate the official integration first. Other Core/client combinations are unsupported until reviewed and tested; do not downgrade Core for this integration.
+Requires **Home Assistant Core 2026.10.2** and its official **Alexa Devices** integration using **aioamazondevices 16.3.2**. Add/authenticate the official integration first. Other Core/client combinations are unsupported until reviewed and tested; do not downgrade Core for this integration.
 
 Choose one installation method:
 
@@ -19,14 +19,14 @@ Choose one installation method:
 
 In HA → Settings → Devices & services → Add integration, choose **Alexa Voice Events**, select an existing Alexa Devices account and its speakers. Configure reception as described below. No additional Amazon login is needed.
 
-For a reproducible runtime reference, the software-tested pre-publication revision is [`4944eea`](https://github.com/vincent97277/ha-alexa-voice-events/tree/4944eeabc51e4735d189c8db4a51ea31a65aca44). Its runtime and Blueprint match this publication; HACS metadata, CI and bilingual installation documentation were added afterward. Download that revision manually to pin that runtime. Record your installed commit separately from the manifest version. A future formal release will use matching integration and Blueprint tag references after hardware acceptance.
+The development branch now targets the observed Core 2026.10.2 environment. Record the installed commit separately from the manifest version. The previous publication baseline `4944eea` targeted Core 2026.10.1 and is historical, not this candidate. A future formal release will use matching integration and Blueprint tag references after hardware acceptance. See [compatibility review](docs/compatibility.md).
 
 ## Blueprint
 
 Open HA → Settings → Automations & scenes → Blueprints → Import Blueprint and paste:
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/4944eeabc51e4735d189c8db4a51ea31a65aca44/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
 Importing the Blueprint is independent of installing the integration. Create an automation from it, select the speakers' voice event entities, enter one literal phrase per line, and choose HA actions. Installing/importing creates no household automation automatically. Use ordinary HA automations for more complex rules; official Alexa Devices actions remain available in HA. Disable overlapping legacy consumers when switching household actions to this integration to avoid duplicate actions.
@@ -50,7 +50,7 @@ Voice events contain text and follow HA recorder policy. There is no additional 
 
 ## Reception settings
 
-Use HA Core **2026.10.1** with **aioamazondevices 16.3.2**; unsupported combinations display an unsupported reception state and leave the official integration alone. Select the existing account and one or more voice-capable speakers, then review each speaker’s reception method. Add another integration entry for another existing account; cross-account selections and duplicate account entries are rejected.
+Use HA Core **2026.10.2** with **aioamazondevices 16.3.2**; unsupported combinations display an unsupported reception state and leave the official integration alone. Select the existing account and one or more voice-capable speakers, then review each speaker’s reception method. Add another integration entry for another existing account; cross-account selections and duplicate account entries are rejected.
 
 Use the integration’s **Configure** options to add/remove speakers or change methods. `native` observes official Alexa Devices history updates; `volume_push` uses matching speaker pushes to fetch history. Only the necessary method and opt-in choices are exposed; scheduling limits stay internal.
 
@@ -62,7 +62,7 @@ No live household installation or new hardware acceptance has been performed for
 
 ## Tests and typing
 
-The target environment is Python **3.14.5**, HA **2026.10.1**, test plugin **0.13.372** and aioamazondevices **16.3.2**. The lockfile records exact resolved dependencies. The plugin's package metadata explicitly pins the required Core version; tests assert the Core/client versions.
+The target environment is Python **3.14.6**, HA **2026.10.2**, test plugin **0.13.373** and aioamazondevices **16.3.2**. The lockfile records exact resolved dependencies. The plugin's package metadata explicitly pins the required Core version; tests assert the Core/client versions.
 
 ```sh
 uv sync --locked
@@ -76,4 +76,4 @@ Recovery tests exercise actual HA account unload/setup, API replacement with lat
 
 ## License and source
 
-Apache-2.0. No upstream parser fixture is redistributed in this slice: tests execute the pinned installed client with synthetic responses. The source-association repair follows the previous local compatibility behavior, rewritten as an adapter without household dependencies. Upstream code remains covered by its own license: [aioamazondevices 16.3.2](https://github.com/chemelli74/aioamazondevices/tree/v16.3.2) and [HA Core 2026.10.1](https://github.com/home-assistant/core/tree/2026.10.1).
+Apache-2.0. No upstream parser fixture is redistributed in this slice: tests execute the pinned installed client with synthetic responses. The source-association repair follows the previous local compatibility behavior, rewritten as an adapter without household dependencies. Upstream code remains covered by its own license: [aioamazondevices 16.3.2](https://github.com/chemelli74/aioamazondevices/tree/v16.3.2) and [HA Core 2026.10.2](https://github.com/home-assistant/core/tree/2026.10.2).

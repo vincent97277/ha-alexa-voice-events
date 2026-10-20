@@ -8,7 +8,7 @@
 
 目前為公開**開發版**。多帳號、多音箱、接收設定與故障恢復已實作並通過軟體測試；manifest 的 `0.1.0` 是預定首版，**尚無正式 tag／release**。新版 Uxbridge／Blueprint 實機驗收待完成，舊整合的測試不代表新版已通過；其他音箱須明確同意試用，仍屬未驗證。
 
-需要 **HA Core 2026.10.1**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
+需要 **HA Core 2026.10.2**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
 
 ## 安裝
 
@@ -19,7 +19,7 @@
 
 在 HA → 設定 → 裝置與服務 → 新增整合，選 **Alexa Voice Events**，選取既有 Alexa Devices 帳號與音箱。每個帳號最多一個項目，可選多個音箱；其他帳號另加項目，不能跨帳號選音箱。
 
-可重現的軟體測試基準為 [`4944eea`](https://github.com/vincent97277/ha-alexa-voice-events/tree/4944eeabc51e4735d189c8db4a51ea31a65aca44)。它的執行程式與 Blueprint 和本次發佈相同，HACS metadata、CI 與雙語說明在其後加入。需要固定該執行版本時，手動下載該 revision；另記安裝 commit，不能只看 manifest 版本。正式實機驗收後才會建立相互對應的整合與 Blueprint 版本標籤。
+開發分支現以實際觀測到的 Core 2026.10.2 為目標。另記安裝 commit，不能只看 manifest 版本。先前 `4944eea` 是 Core 2026.10.1 的歷史發佈基準，不是這次候選版。正式實機驗收後才建立對應整合與 Blueprint 版本標籤；版本差異見 [相容性查核](docs/compatibility.md)。
 
 ## 設定與日常使用
 
@@ -36,7 +36,7 @@ Marshall Uxbridge 依**舊版證據**建議 `volume_push`，首次選取會啟�
 HA → 設定 → 自動化與場景 → Blueprint → 匯入，貼上：
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/4944eeabc51e4735d189c8db4a51ea31a65aca44/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
 匯入與整合安裝彼此獨立，不會自動建立家庭自動化。從 Blueprint 建立自動化，選音箱的語音事件、每行填一個完整口令，再選 HA 動作。比對會去除首尾空白、合併空白並轉小寫；若實際文字含 `alexa`，口令也要包含。複雜情境用 HA 自動化；官方 Alexa Devices 的播報等動作可直接在 HA 使用。
@@ -47,7 +47,7 @@ https://github.com/vincent97277/ha-alexa-voice-events/blob/4944eeabc51e4735d189c
 
 ## 開發與授權
 
-測試環境：Python **3.14.5**、HA **2026.10.1**、pytest-homeassistant-custom-component **0.13.372**、aioamazondevices **16.3.2**；精確相依版本記於 `uv.lock`。
+測試環境：Python **3.14.6**、HA **2026.10.2**、pytest-homeassistant-custom-component **0.13.373**、aioamazondevices **16.3.2**；精確相依版本記於 `uv.lock`。
 
 ```sh
 uv sync --locked
