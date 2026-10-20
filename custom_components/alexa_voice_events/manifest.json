@@ -1,0 +1,11 @@
+{
+  "domain": "alexa_voice_events",
+  "name": "Alexa Voice Events",
+  "version": "0.1.0",
+  "config_flow": true,
+  "dependencies": ["alexa_devices"],
+  "documentation": "https://github.com/vincent97277/ha-alexa-voice-events",
+  "issue_tracker": "https://github.com/vincent97277/ha-alexa-voice-events/issues",
+  "codeowners": ["@vincent97277"],
+  "iot_class": "cloud_push"
+}

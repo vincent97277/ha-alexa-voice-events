@@ -1,0 +1,65 @@
+blueprint:
+  name: Alexa voice phrase to action
+  description: >-
+    Match literal Alexa Voice Events phrases and run your HA actions.
+    Reception off, revoked sessions and stale queued events are rejected.
+  domain: automation
+  homeassistant:
+    min_version: "2026.10.1"
+  input:
+    voice_entities:
+      name: Speakers' voice event entities
+      selector:
+        entity:
+          filter:
+            - integration: alexa_voice_events
+              domain: event
+          multiple: true
+    phrases:
+      name: Recognized phrases
+      description: >-
+        One literal phrase per line. Case and repeated whitespace are ignored.
+        Include the wake-word prefix if it appears in the recognized text.
+      selector:
+        text:
+          multiline: true
+    actions:
+      name: Actions
+      selector:
+        action: {}
+mode: queued
+max: 10
+max_exceeded: silent
+variables:
+  configured_phrases: !input phrases
+triggers:
+  - trigger: state
+    entity_id: !input voice_entities
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state is not none and trigger.to_state is not none
+         and trigger.to_state.attributes.get('event_type') == 'voice_received'
+         and trigger.to_state.attributes.get('schema_version') == 1
+         and trigger.to_state.attributes.get('event_id')
+             != trigger.from_state.attributes.get('event_id') }}
+actions:
+  - variables:
+      envelope: "{{ dict(trigger.to_state.attributes) }}"
+  - condition: template
+    value_template: >-
+      {% set text = envelope.get('voice_command', '') | trim | lower | regex_replace('\\s+', ' ') %}
+      {% set phrases = configured_phrases.split('\n') | map('trim') | map('lower')
+          | map('regex_replace', '\\s+', ' ') | reject('eq', '') | list %}
+      {% set source_ms = envelope.get('source_timestamp_ms') %}
+      {% set received_ms = as_timestamp(envelope.get('received_at'), 0) * 1000 %}
+      {% set now_ms = as_timestamp(now()) * 1000 %}
+      {% set reception = envelope.get('reception_entity_id', '') %}
+      {{ text in phrases and source_ms is integer
+         and 0 <= now_ms - source_ms < 15000
+         and 0 <= now_ms - received_ms < 15000
+         and envelope.get('device_id') and envelope.get('event_id')
+         and envelope.get('session_id')
+         and is_state(reception, 'on')
+         and state_attr(reception, 'session_id') == envelope.get('session_id') }}
+  - sequence: !input actions

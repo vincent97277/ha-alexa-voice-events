@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose an existing Alexa account",
+        "description": "Authentication remains managed by the official Alexa Devices integration.",
+        "data": {"alexa_entry_id": "Alexa account"}
+      },
+      "speaker": {
+        "title": "Choose a speaker",
+        "description": "This initial development slice supports one speaker with a known compatibility profile.",
+        "data": {"speaker": "Speaker"}
+      }
+    },
+    "error": {
+      "invalid_account": "Choose an existing Alexa Devices account.",
+      "invalid_speaker": "Choose a supported speaker belonging to this account.",
+      "account_not_loaded": "Load the selected Alexa Devices account first."
+    },
+    "abort": {
+      "alexa_required": "Set up the official Alexa Devices integration first.",
+      "account_not_loaded": "The selected account is not loaded.",
+      "already_configured": "This Alexa account is already configured.",
+      "no_supported_speakers": "No speaker with a supported profile is available in this account."
+    }
+  }
+}
