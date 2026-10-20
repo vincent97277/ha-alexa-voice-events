@@ -14,7 +14,7 @@ from .receiver import SpeakerReception
 async def async_setup_entry(
     hass: HomeAssistant, entry: VoiceConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    setup_speakers(entry, async_add_entities, lambda speaker: [ReceptionSwitch(speaker)])
+    setup_speakers(entry, async_add_entities, "switch", lambda speaker: [ReceptionSwitch(speaker)])
 
 
 class ReceptionSwitch(ReceiverEntity, SwitchEntity):

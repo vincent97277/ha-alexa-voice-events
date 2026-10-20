@@ -332,3 +332,42 @@ async def test_removing_selected_account_waits_and_removing_our_entry_cleans_loc
     )
     await hass.async_block_till_done(wait_background_tasks=True)
     assert remote_history.await_count == 0
+
+
+async def test_failed_platform_unload_restores_receiving_with_fresh_authority(
+    hass, upstream, remote_history, freezer
+):
+    from unittest.mock import AsyncMock
+
+    from .test_selection import options
+
+    add_speaker(upstream, "speaker-b")
+    entry = await select(hass, upstream, ["speaker-a"])
+    source = entities_for(hass, entry, "speaker-a")
+    previous = hass.states.get(source["switch"]).attributes["session_id"]
+    with patch(
+        "homeassistant.components.sensor.async_unload_entry",
+        new_callable=AsyncMock,
+        return_value=False,
+    ):
+        assert not await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass.states.get(source["event"]) is not None
+    assert hass.states.get(source["switch"]).attributes["session_id"] != previous
+    freezer.tick(timedelta(seconds=1))
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000))]
+    }
+    await signal(upstream, "speaker-a")
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert hass.states.get(source["event"]).attributes["event_type"] == "voice_received"
+    await options(
+        hass,
+        entry,
+        {
+            "speaker-a": {"method": "volume_push", "allow_unverified": False},
+            "speaker-b": {"method": "volume_push", "allow_unverified": False},
+        },
+    )
+    assert len(hass.states.async_all("event")) == 2
+    assert len(hass.states.async_all("switch")) == 2

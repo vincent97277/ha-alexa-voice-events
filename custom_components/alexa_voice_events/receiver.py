@@ -11,7 +11,8 @@ from math import ceil
 from aioamazondevices.structures import AmazonVocalRecord
 from homeassistant.components.alexa_devices.coordinator import AmazonDevicesCoordinator
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -115,13 +116,14 @@ class AccountReceiver:
         self._reconcile_task: asyncio.Task[None] | None = None
         self._changed = False
         self.speakers: dict[str, SpeakerReception] = {}
-        self._added: set[Callable[[SpeakerReception], None]] = set()
+        self._added: dict[str, Callable[[SpeakerReception], None]] = {}
         self._pending: dict[str, PendingPush] = {}
         self._task: asyncio.Task[None] | None = None
         self._dispatch_cancel: Callable[[], None] | None = None
         self._next_dispatch = dt_util.utcnow()
         self._lock = asyncio.Lock()
         self._closed = False
+        self._stop_listener: Callable[[], None] | None = None
         self._unsupported: str | None = None
         self.consecutive_failures = 0
         self.retry_at = dt_util.utcnow()
@@ -129,6 +131,10 @@ class AccountReceiver:
         self._fetch_sessions: dict[str, VoiceSession] | None = None
 
     async def start(self) -> None:
+        self._closed = False
+        self._stop_listener = self.hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP, self._shutdown
+        )
         self.binding.start()
         await self._reconcile()
 
@@ -200,6 +206,7 @@ class AccountReceiver:
                 self.consecutive_failures = 0
                 self._fetch_error = None
                 self.retry_at = dt_util.utcnow()
+                self._next_dispatch = dt_util.utcnow()
                 self.coordinator = current
                 self._unsupported = None
                 if current is not None:
@@ -222,9 +229,16 @@ class AccountReceiver:
             if not self._closed:
                 await self._configure()
 
-    def subscribe_added(self, listener: Callable[[SpeakerReception], None]) -> Callable[[], None]:
-        self._added.add(listener)
-        return lambda: self._added.discard(listener)
+    def subscribe_added(
+        self, domain: str, listener: Callable[[SpeakerReception], None]
+    ) -> Callable[[], None]:
+        self._added[domain] = listener
+
+        def remove() -> None:
+            if self._added.get(domain) is listener:
+                self._added.pop(domain)
+
+        return remove
 
     async def _configure(self) -> None:
         """Apply the latest options, preserving unaffected objects and sessions."""
@@ -279,7 +293,7 @@ class AccountReceiver:
                 speaker.reset()
         self._refresh_adapter()
         for speaker in added:
-            for listener in tuple(self._added):
+            for listener in tuple(self._added.values()):
                 listener(speaker)
         for speaker in self.speakers.values():
             speaker.notify()
@@ -531,8 +545,14 @@ class AccountReceiver:
                 await self._task
             self._task = None
 
+    async def _shutdown(self, _event: Event) -> None:
+        await self.close()
+
     async def close(self) -> None:
         self._closed = True
+        if self._stop_listener is not None:
+            self._stop_listener()
+            self._stop_listener = None
         self.binding.stop()
         self._revoke_binding()
         if self._reconcile_task is not None:

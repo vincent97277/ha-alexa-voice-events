@@ -65,7 +65,7 @@ class UpstreamAdapter:
 
     def __init__(self, coordinator: AmazonDevicesCoordinator) -> None:
         self.coordinator = coordinator
-        self.api = coordinator.api
+        self.api: Any = None
         self._restore: Callable[[], None] | None = None
         self._owned: Callable[[], bool] = lambda: False
         self._active = False
@@ -75,16 +75,35 @@ class UpstreamAdapter:
         self._on_push: Callable[[str], None] = lambda serial: None
 
     def matches(self, coordinator: AmazonDevicesCoordinator | None) -> bool:
-        return coordinator is self.coordinator and coordinator.api is self.api
+        try:
+            return (
+                coordinator is self.coordinator
+                and coordinator.api is self.api
+                and isinstance(coordinator.data, dict)
+                and isinstance(coordinator.vocal_records, dict)
+            )
+        except Exception:
+            return False
 
     def start(self, on_native: Callable[[], None], on_push: Callable[[str], None]) -> None:
-        if (
-            ha_const.__version__ != SUPPORTED_CORE
-            or metadata.version("aioamazondevices") != SUPPORTED_CLIENT
-        ):
-            raise UnsupportedUpstream("unsupported_version")
-        if not isinstance(self.coordinator.data, dict) or not isinstance(self.records, dict):
-            raise UnsupportedUpstream("unsupported_structure")
+        try:
+            if (
+                ha_const.__version__ != SUPPORTED_CORE
+                or metadata.version("aioamazondevices") != SUPPORTED_CLIENT
+            ):
+                raise UnsupportedUpstream("unsupported_version")
+            self.api = self.coordinator.api
+            if (
+                self.api is None
+                or not isinstance(self.coordinator.data, dict)
+                or not isinstance(self.records, dict)
+                or not callable(self.coordinator.async_add_listener)
+            ):
+                raise UnsupportedUpstream("unsupported_structure")
+        except UnsupportedUpstream:
+            raise
+        except Exception:
+            raise UnsupportedUpstream("unsupported_structure") from None
         self._active = True
         self._on_push = on_push
         self._unsubscribe = self.coordinator.async_add_listener(on_native)

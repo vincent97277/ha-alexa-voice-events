@@ -40,6 +40,7 @@ class ReceiverEntity(Entity):
 def setup_speakers(
     entry: VoiceConfigEntry,
     add_entities: AddEntitiesCallback,
+    domain: str,
     factory: Callable[[SpeakerReception], Iterable[Entity]],
 ) -> None:
     """Add current and future selections without reloading existing entities."""
@@ -47,5 +48,7 @@ def setup_speakers(
         [entity for speaker in entry.runtime_data.speakers.values() for entity in factory(speaker)]
     )
     entry.async_on_unload(
-        entry.runtime_data.subscribe_added(lambda speaker: add_entities(list(factory(speaker))))
+        entry.runtime_data.subscribe_added(
+            domain, lambda speaker: add_entities(list(factory(speaker)))
+        )
     )

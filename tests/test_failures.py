@@ -191,3 +191,36 @@ async def test_existing_owner_is_not_overwritten(hass, upstream, remote_history)
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert upstream.api._alexa_voice_events_owner is foreign_owner
     assert upstream.api._history_handler._vocal_history_json is remote_history
+
+
+async def test_missing_api_structure_stops_reception_and_recovers_locally_when_restored(
+    hass, upstream, remote_history, freezer
+):
+    api = upstream.api
+    native = api._handle_volume_change_event
+    entry = await select(hass, upstream, ["speaker-a"])
+    source = entities_for(hass, entry, "speaker-a")
+    upstream.api = None
+    await advance(hass, freezer)
+    assert diagnostic(hass, source, "reception_status").state == "unsupported"
+    assert diagnostic(hass, source, "last_error").state == "unsupported_structure"
+    assert api._handle_volume_change_event == native
+    upstream.api = api
+    await advance(hass, freezer)
+    assert diagnostic(hass, source, "reception_status").state == "ready"
+    assert remote_history.await_count == 0
+
+
+async def test_missing_record_backing_field_is_diagnosed_and_reconciliation_recovers(
+    hass, upstream, remote_history, freezer
+):
+    records = upstream._vocal_records
+    del upstream._vocal_records
+    entry = await select(hass, upstream, ["speaker-a"])
+    source = entities_for(hass, entry, "speaker-a")
+    assert diagnostic(hass, source, "reception_status").state == "unsupported"
+    assert diagnostic(hass, source, "last_error").state == "unsupported_structure"
+    upstream._vocal_records = records
+    await advance(hass, freezer)
+    assert diagnostic(hass, source, "reception_status").state == "ready"
+    assert remote_history.await_count == 0

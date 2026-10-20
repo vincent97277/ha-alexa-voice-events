@@ -19,6 +19,7 @@ async def async_setup_entry(
     setup_speakers(
         entry,
         async_add_entities,
+        "sensor",
         lambda speaker: [
             ReceptionSensor(speaker, "status", "Reception status"),
             ReceptionSensor(speaker, "last_received", "Last received"),

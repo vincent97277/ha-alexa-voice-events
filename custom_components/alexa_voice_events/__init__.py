@@ -1,5 +1,7 @@
 """Alexa Voice Events integration."""
 
+import asyncio
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -28,7 +30,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: VoiceConfigEntry) -> boo
 
 async def async_unload_entry(hass: HomeAssistant, entry: VoiceConfigEntry) -> bool:
     await entry.runtime_data.close()
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await asyncio.gather(
+        *(hass.config_entries.async_forward_entry_unload(entry, platform) for platform in PLATFORMS)
+    )
+    if all(unloaded):
+        return True
+    await entry.runtime_data.start()
+    await hass.config_entries.async_forward_entry_setups(
+        entry, [platform for platform, success in zip(PLATFORMS, unloaded, strict=True) if success]
+    )
+    return False
 
 
 async def _options_updated(hass: HomeAssistant, entry: VoiceConfigEntry) -> None:
