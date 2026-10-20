@@ -4,24 +4,70 @@
       "user": {
         "title": "Choose an existing Alexa account",
         "description": "Authentication remains managed by the official Alexa Devices integration.",
-        "data": {"alexa_entry_id": "Alexa account"}
+        "data": {
+          "alexa_entry_id": "Alexa account"
+        }
       },
       "speaker": {
-        "title": "Choose a speaker",
-        "description": "This initial development slice supports one speaker with a known compatibility profile.",
-        "data": {"speaker": "Speaker"}
+        "title": "Choose speakers",
+        "description": "Select speakers from this account. Each has its own voice event, reception switch and diagnostics. Unknown speakers remain unverified.",
+        "data": {
+          "speakers": "Speakers"
+        }
+      },
+      "method": {
+        "title": "Reception for {speaker}",
+        "description": "Profile: {profile}. Evidence: {evidence}, applies only to the recommended method. Native uses existing upstream history updates; volume_push fetches after matching volume pushes. Unknown speakers and method overrides remain disabled until explicitly allowed below. Selection and software tests do not establish hardware acceptance.",
+        "data": {
+          "method": "Reception method",
+          "allow_unverified": "Explicitly allow this unverified speaker / method"
+        }
       }
     },
     "error": {
       "invalid_account": "Choose an existing Alexa Devices account.",
-      "invalid_speaker": "Choose a supported speaker belonging to this account.",
-      "account_not_loaded": "Load the selected Alexa Devices account first."
+      "invalid_speaker": "Choose at least one voice-capable speaker belonging to this account.",
+      "account_not_loaded": "Load the selected Alexa Devices account first.",
+      "invalid_method": "Choose a supported reception method."
     },
     "abort": {
       "alexa_required": "Set up the official Alexa Devices integration first.",
       "account_not_loaded": "The selected account is not loaded.",
       "already_configured": "This Alexa account is already configured.",
-      "no_supported_speakers": "No speaker with a supported profile is available in this account."
+      "no_supported_speakers": "No voice-capable speakers are available in this account.",
+      "invalid_speaker": "The selected speaker is no longer available."
+    }
+  },
+  "options": {
+    "step": {
+      "speaker": {
+        "title": "Choose speakers",
+        "description": "Select speakers from this account. Each has its own voice event, reception switch and diagnostics. Unknown speakers remain unverified.",
+        "data": {
+          "speakers": "Speakers"
+        }
+      },
+      "method": {
+        "title": "Reception for {speaker}",
+        "description": "Profile: {profile}. Evidence: {evidence}, applies only to the recommended method. Native uses existing upstream history updates; volume_push fetches after matching volume pushes. Unknown speakers and method overrides remain disabled until explicitly allowed below. Selection and software tests do not establish hardware acceptance.",
+        "data": {
+          "method": "Reception method",
+          "allow_unverified": "Explicitly allow this unverified speaker / method"
+        }
+      }
+    },
+    "error": {
+      "invalid_account": "Choose an existing Alexa Devices account.",
+      "invalid_speaker": "Choose at least one voice-capable speaker belonging to this account.",
+      "account_not_loaded": "Load the selected Alexa Devices account first.",
+      "invalid_method": "Choose a supported reception method."
+    },
+    "abort": {
+      "alexa_required": "Set up the official Alexa Devices integration first.",
+      "account_not_loaded": "The selected account is not loaded.",
+      "already_configured": "This Alexa account is already configured.",
+      "no_supported_speakers": "No voice-capable speakers are available in this account.",
+      "invalid_speaker": "The selected speaker is no longer available."
     }
   }
 }

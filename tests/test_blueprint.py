@@ -13,9 +13,12 @@ from .conftest import history_row
 from .test_integration import configure, push
 
 
-async def install_blueprint(hass, upstream):
-    entry = await configure(hass, upstream)
-    event_id = next(s.entity_id for s in hass.states.async_all("event"))
+async def install_blueprint(hass, upstream, *, entry=None, event_ids=None):
+    if entry is None:
+        entry = await configure(hass, upstream)
+    if event_ids is None:
+        event_ids = [next(s.entity_id for s in hass.states.async_all("event"))]
+    event_id = event_ids[0]
     source = (
         Path(__file__).parents[1] / "blueprints/automation/alexa_voice_events/phrase_to_action.yaml"
     )
@@ -43,7 +46,7 @@ async def install_blueprint(hass, upstream):
                     "use_blueprint": {
                         "path": "alexa_voice_events/phrase_to_action.yaml",
                         "input": {
-                            "voice_entities": [event_id],
+                            "voice_entities": event_ids,
                             "phrases": "alexa test phrase\nother phrase",
                             "actions": [
                                 {
@@ -92,7 +95,7 @@ async def test_unmatched_speech_off_switch_and_reload_do_not_replay(
     }
     await push(hass, upstream)
     assert calls == []
-    assert entry.options["enabled"] is False
+    assert entry.data["enabled"]["speaker-a"] is False
     assert await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get(switch_id).state == "off"

@@ -1,6 +1,7 @@
 """Compact reception diagnostics; no utterance history or trial state."""
 
 from datetime import datetime
+from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import EntityCategory
@@ -8,26 +9,28 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import VoiceConfigEntry
-from .entity import ReceiverEntity
-from .receiver import AccountReceiver
+from .entity import ReceiverEntity, setup_speakers
+from .receiver import SpeakerReception
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: VoiceConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities(
-        [
-            ReceptionSensor(entry.runtime_data, "status", "Reception status"),
-            ReceptionSensor(entry.runtime_data, "last_received", "Last received"),
-            ReceptionSensor(entry.runtime_data, "last_error", "Last error"),
-        ]
+    setup_speakers(
+        entry,
+        async_add_entities,
+        lambda speaker: [
+            ReceptionSensor(speaker, "status", "Reception status"),
+            ReceptionSensor(speaker, "last_received", "Last received"),
+            ReceptionSensor(speaker, "last_error", "Last error"),
+        ],
     )
 
 
 class ReceptionSensor(ReceiverEntity, SensorEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, receiver: AccountReceiver, key: str, name: str) -> None:
+    def __init__(self, receiver: SpeakerReception, key: str, name: str) -> None:
         super().__init__(receiver, key, name)
         self.key = key
         if key == "last_received":
@@ -40,3 +43,13 @@ class ReceptionSensor(ReceiverEntity, SensorEntity):
         if self.key == "last_received":
             return self.receiver.last_received
         return self.receiver.last_error
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.key != "status":
+            return None
+        return {
+            "method": self.receiver.config["method"],
+            "validation_scope": self.receiver.validation_scope,
+            "new_hardware_acceptance": "pending",
+        }

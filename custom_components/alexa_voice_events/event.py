@@ -5,21 +5,21 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import VoiceConfigEntry
-from .entity import ReceiverEntity
-from .receiver import AccountReceiver
+from .entity import ReceiverEntity, setup_speakers
+from .receiver import SpeakerReception
 from .voice import VoiceEnvelope
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: VoiceConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities([VoiceEvent(entry.runtime_data)])
+    setup_speakers(entry, async_add_entities, lambda speaker: [VoiceEvent(speaker)])
 
 
 class VoiceEvent(ReceiverEntity, EventEntity):
     _attr_event_types = ["voice_received"]
 
-    def __init__(self, receiver: AccountReceiver) -> None:
+    def __init__(self, receiver: SpeakerReception) -> None:
         super().__init__(receiver, "voice", "Voice")
 
     async def async_get_last_event_data(self) -> EventExtraStoredData | None:

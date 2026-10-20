@@ -1,9 +1,7 @@
 """Version-scoped upstream access; never owns credentials or the connection."""
 
 from collections.abc import Callable
-from datetime import datetime
 from importlib.metadata import version
-from math import ceil
 from typing import Any
 
 from aioamazondevices.structures import AmazonVocalRecord
@@ -11,10 +9,9 @@ from homeassistant.components.alexa_devices.coordinator import AmazonDevicesCoor
 from homeassistant.const import __version__ as core_version
 
 from .const import SUPPORTED_CLIENT, SUPPORTED_CORE
-from .profiles import ReceptionProfile
 
 
-def normalize_history(payload: Any, devices: dict[str, str], since_ms: int) -> Any:
+def normalize_history(payload: Any, devices: dict[str, tuple[str, int]]) -> Any:
     """Recover a missing association only from consistent known source keys."""
     if not isinstance(payload, dict) or not isinstance(payload.get("alexaHistoryRecords"), list):
         return payload
@@ -28,11 +25,12 @@ def normalize_history(payload: Any, devices: dict[str, str], since_ms: int) -> A
         items = row.get("voiceHistoryRecordItems") or []
         valid = (
             type(stamp) is int
-            and stamp >= since_ms
             and len(parts) == 4
             and bool(parts[0])
             and parts[1] == str(stamp)
-            and devices.get(parts[3]) == parts[2]
+            and parts[3] in devices
+            and devices[parts[3]][0] == parts[2]
+            and stamp >= devices[parts[3]][1]
             and isinstance(items, list)
         )
         if valid:
@@ -63,43 +61,46 @@ class UnsupportedUpstream(Exception):
 
 
 class UpstreamAdapter:
-    """Wrap only one selected upstream API instance, reversibly."""
+    """One native listener and reversible compatibility hook pair per account."""
 
-    def __init__(
-        self, coordinator: AmazonDevicesCoordinator, serial: str, profile: ReceptionProfile
-    ) -> None:
+    def __init__(self, coordinator: AmazonDevicesCoordinator) -> None:
         self.coordinator = coordinator
-        self.serial = serial
-        self.profile = profile
         self._restore: Callable[[], None] | None = None
+        self._unsubscribe: Callable[[], None] | None = None
+        self._sources: dict[str, tuple[str, int]] = {}
+        self._on_push: Callable[[str], None] = lambda serial: None
 
-    def start(self, since: datetime, on_push: Callable[[], None]) -> None:
-        """Preserve native handling and notify reception on matching pushes."""
+    def start(self, on_native: Callable[[], None], on_push: Callable[[str], None]) -> None:
         if core_version != SUPPORTED_CORE or version("aioamazondevices") != SUPPORTED_CLIENT:
             raise UnsupportedUpstream("unsupported_version")
-        if self.profile.method != "volume_push":
-            raise UnsupportedUpstream("unsupported_method")
+        self._on_push = on_push
+        self._unsubscribe = self.coordinator.async_add_listener(on_native)
+
+    def set_compatibility(self, sources: dict[str, tuple[str, int]]) -> None:
+        """Change active sources without disturbing other speakers' sessions."""
+        self._sources = sources
+        if not sources:
+            self._stop_hooks()
+            return
+        if self._restore is not None:
+            return
         api: Any = self.coordinator.api
         handler: Any = getattr(api, "_history_handler", None)
         history = getattr(handler, "_vocal_history_json", None)
         volume = getattr(api, "_handle_volume_change_event", None)
         if not callable(history) or not callable(volume):
             raise UnsupportedUpstream("unsupported_structure")
-        device_type = self.coordinator.data[self.serial].device_type
 
         async def normalized() -> Any:
-            return normalize_history(
-                await history(), {self.serial: device_type}, ceil(since.timestamp() * 1000)
-            )
+            return normalize_history(await history(), self._sources)
 
         async def pushed(payload: dict[str, Any]) -> None:
             await volume(payload)
             source = payload.get("dopplerId")
-            if isinstance(source, dict) and (
-                source.get("deviceSerialNumber") == self.serial
-                and source.get("deviceType") == device_type
-            ):
-                on_push()
+            if isinstance(source, dict):
+                serial = source.get("deviceSerialNumber")
+                if serial in self._sources and source.get("deviceType") == self._sources[serial][0]:
+                    self._on_push(serial)
 
         def restore() -> None:
             if handler._vocal_history_json is normalized:
@@ -111,14 +112,23 @@ class UpstreamAdapter:
         handler._vocal_history_json = normalized
         api._handle_volume_change_event = pushed
 
-    def stop(self) -> None:
-        """Remove only this adapter's wrappers; leave the upstream API alive."""
+    def _stop_hooks(self) -> None:
         if self._restore is not None:
             self._restore()
             self._restore = None
 
-    async def fetch(self) -> AmazonVocalRecord | None:
-        """Use the real upstream parser and coordinator notification path."""
+    def stop(self) -> None:
+        self._sources = {}
+        self._stop_hooks()
+        if self._unsubscribe is not None:
+            self._unsubscribe()
+            self._unsubscribe = None
+
+    @property
+    def records(self) -> dict[str, AmazonVocalRecord]:
+        return self.coordinator.vocal_records
+
+    async def fetch(self) -> dict[str, AmazonVocalRecord]:
         await self.coordinator.sync_history_state()
         self.coordinator.async_update_listeners()
-        return self.coordinator.vocal_records.get(self.serial)
+        return dict(self.records)

@@ -28,8 +28,11 @@ async def configure(hass: HomeAssistant, upstream):
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
-            "speaker": "speaker-a",
+            "speakers": ["speaker-a"],
         },
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"method": "volume_push", "allow_unverified": False}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done(wait_background_tasks=True)
@@ -124,7 +127,7 @@ async def test_invalid_selections_and_duplicate_account_are_rejected(
         },
     )
     with pytest.raises(InvalidData):
-        await hass.config_entries.flow.async_configure(result["flow_id"], {"speaker": "foreign"})
+        await hass.config_entries.flow.async_configure(result["flow_id"], {"speakers": ["foreign"]})
     hass.config_entries.flow.async_abort(result["flow_id"])
     await configure(hass, upstream)
     duplicate = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})

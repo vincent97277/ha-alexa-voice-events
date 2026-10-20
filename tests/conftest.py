@@ -28,42 +28,60 @@ def target_environment(enable_custom_integrations):
 
 
 @pytest.fixture
-async def upstream(hass: HomeAssistant):
-    entry = MockConfigEntry(
-        domain="alexa_devices",
-        title="Synthetic Alexa",
-        unique_id="synthetic-account",
-        version=1,
-        minor_version=3,
-        data={"username": "synthetic@example.invalid", "password": "unused", "login_data": {}},
-    )
-    entry.add_to_hass(hass)
-    coordinator = AmazonDevicesCoordinator(hass, entry, async_get_clientsession(hass))
-    device = SimpleNamespace(
-        account_name="Test speaker",
-        device_type="A20E9PVI3HANVQ",
-        voice_control_supported=True,
-        online=True,
-        serial_number="speaker-a",
-        model="Uxbridge",
-        parent_clusters=[],
-        device_cluster_members={},
-    )
-    coordinator.async_set_updated_data({"speaker-a": device})
-    coordinator.api._device_handler.devices["speaker-a"] = device
-    coordinator.api._device_volumes_initialized = True
-    coordinator.api._media_handler.update_cached_device_volume(
-        "speaker-a", AmazonVolumeState(20, False)
-    )
-    entry.runtime_data = coordinator
-    entry.mock_state(hass, ConfigEntryState.LOADED)
+async def upstream_factory(hass: HomeAssistant):
+    accounts = []
+
+    def create(account_id="synthetic-account"):
+        entry = MockConfigEntry(
+            domain="alexa_devices",
+            title=f"Synthetic Alexa {account_id}",
+            unique_id=account_id,
+            version=1,
+            minor_version=3,
+            data={"username": "synthetic@example.invalid", "password": "unused", "login_data": {}},
+        )
+        entry.add_to_hass(hass)
+        coordinator = AmazonDevicesCoordinator(hass, entry, async_get_clientsession(hass))
+        device = SimpleNamespace(
+            account_name="Test speaker",
+            device_type="A20E9PVI3HANVQ",
+            voice_control_supported=True,
+            online=True,
+            serial_number="speaker-a",
+            model="Uxbridge",
+            parent_clusters=[],
+            device_cluster_members={},
+        )
+        coordinator.async_set_updated_data({"speaker-a": device})
+        coordinator.api._device_handler.devices["speaker-a"] = device
+        coordinator.api._device_volumes_initialized = True
+        coordinator.api._media_handler.update_cached_device_volume(
+            "speaker-a", AmazonVolumeState(20, False)
+        )
+        entry.runtime_data = coordinator
+        entry.mock_state(hass, ConfigEntryState.LOADED)
+        accounts.append(entry)
+        return coordinator
+
     with patch("aioamazondevices.implementation.history.BACKEND_REFRESH_WAIT_SECONDS", 0):
-        yield coordinator
+        yield create
+    for entry in accounts:
+        entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
 
 
-def history_row(stamp: int, *, text: str = "alexa test phrase", serial: str = "speaker-a") -> dict:
+@pytest.fixture
+async def upstream(upstream_factory):
+    return upstream_factory()
+
+
+def history_row(
+    stamp: int,
+    *,
+    text: str = "alexa test phrase",
+    serial: str = "speaker-a",
+    device_type: str = "A20E9PVI3HANVQ",
+) -> dict:
     """Synthetic source identity, not a captured household history record."""
-    device_type = "A20E9PVI3HANVQ"
     return {
         "timestamp": stamp,
         "utteranceType": "GENERAL",
