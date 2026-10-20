@@ -205,7 +205,7 @@ async def test_unverified_compatibility_reuses_method_without_claiming_hardware_
     assert hass.states.get(source["event"]).attributes["voice_command"] == "alexa test phrase"
     status = hass.states.get(next(e for e in source.values() if e.endswith("reception_status")))
     assert status.attributes["validation_scope"] == "unverified"
-    assert status.attributes["new_hardware_acceptance"] == "pending"
+    assert "new_hardware_acceptance" not in status.attributes
 
 
 async def test_same_serial_and_phrase_in_two_accounts_have_distinct_event_and_control_identity(

@@ -6,7 +6,7 @@
 
 ## 開發狀態與支援版本
 
-目前為公開**開發版**。多帳號、多音箱、接收設定與故障恢復已實作並通過軟體測試；manifest 的 `0.1.0` 是預定首版，**尚無正式 tag／release**。新版 Uxbridge／Blueprint 實機驗收待完成，舊整合的測試不代表新版已通過；其他音箱須明確同意試用，仍屬未驗證。
+目前為 **v0.1.0 候選版**。2026-10-21 已確認 Uxbridge 語音／動作、關閉接收不動作，以及重新啟用／重載後的新口令。最後候選版檢查進行中，**尚無正式 tag／release**；其他音箱須明確同意試用，仍屬未驗證。
 
 需要 **HA Core 2026.10.2**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
 
@@ -25,7 +25,7 @@
 
 整合的「設定」可新增／移除音箱或調整接收方式。`native` 接收官方整合更新；`volume_push` 由對應音箱推送觸發歷史讀取，沒有閒置輪詢與手動試驗視窗。
 
-Marshall Uxbridge 依**舊版證據**建議 `volume_push`，首次選取會啟用，但新版實機驗收仍待完成。未知音箱預設 `native`；未知音箱或覆寫已知設定時，須勾選 **Explicitly allow this unverified speaker / method** 才能啟用。接收開關不能繞過同意。診斷的 `validation_scope` 為 `legacy_uxbridge` 或 `unverified`，`new_hardware_acceptance` 仍為 `pending`。
+Marshall Uxbridge 依已記錄的 Uxbridge 查核建議 `volume_push`，首次選取會啟用；這不代表其他實體音箱或接收方式已驗證。未知音箱預設 `native`；未知音箱或覆寫已知設定時，須勾選 **Explicitly allow this unverified speaker / method** 才能啟用。接收開關不能繞過同意。診斷的 `validation_scope` 為 `uxbridge_volume_push` 或 `unverified`。實機範圍由 [驗收報告](docs/hardware-acceptance.md)記錄，不再在每個安裝中寫死 pending 標記。
 
 每個音箱有接收開關、語音事件及診斷感測器，關閉、移除或更改方式只撤銷該音箱舊 session。接收意圖可跨重新啟動保存；關閉後不會自行開啟。帳號/API 重新連線會換新 session，還原的舊事件不會觸發動作。狀態包含 `disabled`、`ready`、`waiting`、`error`、`unsupported`；`ready` 只代表本機準備完成。
 
@@ -43,7 +43,7 @@ https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/autom
 
 預設 `queued`、`max: 10`，可在建立後的自動化 YAML 調整。排隊動作執行前重新檢查十五秒內的新鮮度、接收開關與 session；已執行中的任意使用者動作由 HA 管理。切換家庭動作時停用重疊的舊接收者，避免重複執行。
 
-語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。本開發版尚未安裝到家庭 HA；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
+語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。候選版已透過 HACS 安裝到測試的 Uxbridge 環境，精確版本與剩餘檢查見驗收報告；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
 
 ## 開發與授權
 

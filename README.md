@@ -6,7 +6,7 @@ Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices 
 
 ## Development status
 
-This is a public **development build**. Multi-account/multi-speaker selection and recovery are implemented and software-tested. The manifest's `0.1.0` is the planned first version; there is **no formal tag/release yet**. New Uxbridge/Blueprint hardware acceptance is pending; legacy results do not verify this implementation. Other speakers require explicit opt-in and are unverified.
+This is the **v0.1.0 release candidate**. Uxbridge voice/action, disabled reception and a fresh phrase after re-enable/reload were confirmed on 2026-10-21. Final candidate checks are in progress; no formal tag/release has been created yet. Other speakers require explicit opt-in and remain unverified.
 
 ## Installation
 
@@ -54,11 +54,11 @@ Use HA Core **2026.10.2** with **aioamazondevices 16.3.2**; unsupported combinat
 
 Use the integration’s **Configure** options to add/remove speakers or change methods. `native` observes official Alexa Devices history updates; `volume_push` uses matching speaker pushes to fetch history. Only the necessary method and opt-in choices are exposed; scheduling limits stay internal.
 
-The Marshall Uxbridge profile suggests `volume_push` using **legacy Uxbridge evidence**. It starts enabled when first selected, without claiming new hardware acceptance. Unknown speakers default to `native`; they and overrides of a known profile’s suggested method stay disabled until **Explicitly allow this unverified speaker / method** is checked. A reception switch cannot bypass this opt-in. Tests/selection never promote a device to verified. The status sensor exposes `method`, `validation_scope` (`legacy_uxbridge` or `unverified`) and `new_hardware_acceptance: pending`.
+The Marshall Uxbridge profile suggests `volume_push` using the documented Uxbridge checks. It starts enabled when first selected; this does not verify another physical speaker or another method. Unknown speakers default to `native`; they and overrides of a known profile’s suggested method stay disabled until **Explicitly allow this unverified speaker / method** is checked. A reception switch cannot bypass this opt-in. Tests/selection never promote a device to verified. The status sensor exposes `method` and `validation_scope` (`uxbridge_volume_push` or `unverified`). Hardware scope is recorded in the [acceptance report](docs/hardware-acceptance.md), rather than a hardcoded pending flag in every installation.
 
 Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
 
-No live household installation or new hardware acceptance has been performed for this development build. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
+This candidate was installed through HACS on the tested Uxbridge instance; see the acceptance report for the exact build and remaining checks. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
 
 ## Tests and typing
 

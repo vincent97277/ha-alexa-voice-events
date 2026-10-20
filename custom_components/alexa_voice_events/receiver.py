@@ -6,6 +6,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import sha256
+from importlib import metadata
 from math import ceil
 
 from aioamazondevices.structures import AmazonVocalRecord
@@ -112,6 +113,7 @@ class AccountReceiver:
     ) -> None:
         self.hass, self.entry, self.coordinator = hass, entry, coordinator
         self.adapter: UpstreamAdapter | None = None
+        self._client_version = ""
         self.binding = AccountBinding(hass, entry.data["alexa_entry_id"], self._binding_changed)
         self._reconcile_task: asyncio.Task[None] | None = None
         self._changed = False
@@ -131,6 +133,12 @@ class AccountReceiver:
         self._fetch_sessions: dict[str, VoiceSession] | None = None
 
     async def start(self) -> None:
+        try:
+            self._client_version = await self.hass.async_add_executor_job(
+                metadata.version, "aioamazondevices"
+            )
+        except metadata.PackageNotFoundError:
+            self._client_version = ""
         self._closed = False
         self._stop_listener = self.hass.bus.async_listen_once(
             EVENT_HOMEASSISTANT_STOP, self._shutdown
@@ -210,7 +218,7 @@ class AccountReceiver:
                 self.coordinator = current
                 self._unsupported = None
                 if current is not None:
-                    adapter = UpstreamAdapter(current)
+                    adapter = UpstreamAdapter(current, self._client_version)
                     try:
                         adapter.start(
                             lambda: self._native_updated(adapter),

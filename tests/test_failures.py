@@ -1,5 +1,7 @@
 """Bounded cloud failures and support guards at upstream/HA boundaries."""
 
+import asyncio
+from importlib import metadata
 from unittest.mock import patch
 
 import pytest
@@ -224,3 +226,17 @@ async def test_missing_record_backing_field_is_diagnosed_and_reconciliation_reco
     await advance(hass, freezer)
     assert diagnostic(hass, source, "reception_status").state == "ready"
     assert remote_history.await_count == 0
+
+
+async def test_client_version_lookup_does_not_block_ha_event_loop(hass, upstream):
+    real_version = metadata.version
+
+    def filesystem_lookup(package):
+        with pytest.raises(RuntimeError, match="no running event loop"):
+            asyncio.get_running_loop()
+        return real_version(package)
+
+    with patch("importlib.metadata.version", new=filesystem_lookup):
+        entry = await select(hass, upstream, ["speaker-a"])
+    source = entities_for(hass, entry, "speaker-a")
+    assert diagnostic(hass, source, "reception_status").state == "ready"

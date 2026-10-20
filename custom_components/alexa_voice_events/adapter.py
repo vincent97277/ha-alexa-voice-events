@@ -1,7 +1,6 @@
 """Version-scoped upstream access; never owns credentials or the connection."""
 
 from collections.abc import Callable
-from importlib import metadata
 from typing import Any
 
 from aioamazondevices.structures import AmazonVocalRecord
@@ -63,8 +62,9 @@ class UnsupportedUpstream(Exception):
 class UpstreamAdapter:
     """One native listener and reversible compatibility hook pair per account."""
 
-    def __init__(self, coordinator: AmazonDevicesCoordinator) -> None:
+    def __init__(self, coordinator: AmazonDevicesCoordinator, client_version: str) -> None:
         self.coordinator = coordinator
+        self.client_version = client_version
         self.api: Any = None
         self._restore: Callable[[], None] | None = None
         self._owned: Callable[[], bool] = lambda: False
@@ -87,10 +87,7 @@ class UpstreamAdapter:
 
     def start(self, on_native: Callable[[], None], on_push: Callable[[str], None]) -> None:
         try:
-            if (
-                ha_const.__version__ != SUPPORTED_CORE
-                or metadata.version("aioamazondevices") != SUPPORTED_CLIENT
-            ):
+            if ha_const.__version__ != SUPPORTED_CORE or self.client_version != SUPPORTED_CLIENT:
                 raise UnsupportedUpstream("unsupported_version")
             self.api = self.coordinator.api
             if (

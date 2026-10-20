@@ -14,7 +14,7 @@ class SpeakerConfig(TypedDict):
 
 @dataclass(frozen=True)
 class ReceptionProfile:
-    """Legacy evidence suggests a default; it is not new hardware acceptance."""
+    """Recorded evidence suggests a default; tests never infer hardware acceptance."""
 
     name: str
     method: Method
@@ -22,7 +22,7 @@ class ReceptionProfile:
 
 
 PROFILES = {
-    "A20E9PVI3HANVQ": ReceptionProfile("Marshall Uxbridge", "volume_push", "legacy_uxbridge"),
+    "A20E9PVI3HANVQ": ReceptionProfile("Marshall Uxbridge", "volume_push", "uxbridge_volume_push"),
 }
 
 
