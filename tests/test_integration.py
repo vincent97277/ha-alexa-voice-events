@@ -32,7 +32,7 @@ async def configure(hass: HomeAssistant, upstream):
         },
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     return result["result"]
 
 
@@ -45,7 +45,7 @@ async def push(hass: HomeAssistant, upstream):
             "isMuted": False,
         },
     )
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 async def test_select_speaker_and_receive_a_real_parsed_event(hass, upstream, remote_history):
@@ -67,7 +67,7 @@ async def test_select_speaker_and_receive_a_real_parsed_event(hass, upstream, re
     assert upstream.vocal_records["speaker-a"].title == "alexa test phrase"
     assert upstream._volume_states["speaker-a"].volume == 21
     assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
 
 
 @pytest.mark.parametrize(
@@ -179,7 +179,7 @@ async def test_a_second_fetch_does_not_delay_the_first_accepted_event(
         )
     finally:
         release.set()
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert requests == 2
 
 
@@ -208,7 +208,7 @@ async def test_reception_off_cancels_late_remote_work(hass, upstream, remote_his
     await started.wait()
     switch_id = next(s.entity_id for s in hass.states.async_all("switch"))
     await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert hass.states.get(switch_id).state == "off"
     assert next(iter(hass.states.async_all("event"))).attributes["event_type"] is None
 
@@ -218,7 +218,47 @@ async def test_unload_leaves_native_volume_handling_and_stops_compatibility_fetc
 ):
     entry = await configure(hass, upstream)
     assert await hass.config_entries.async_unload(entry.entry_id)
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     await push(hass, upstream)
     assert remote_history.await_count == 0
     assert upstream._volume_states["speaker-a"].volume == 21
+
+
+async def test_overlapping_push_keeps_the_latest_hint_with_two_attempts(
+    hass, upstream, remote_history, freezer
+):
+    await configure(hass, upstream)
+    freezer.tick(timedelta(seconds=1))
+    first = history_row(int(dt_util.utcnow().timestamp() * 1000))
+    started, release = asyncio.Event(), asyncio.Event()
+    requests = 0
+
+    async def history():
+        nonlocal requests
+        requests += 1
+        if requests == 1:
+            started.set()
+            await release.wait()
+            return {"alexaHistoryRecords": [first]}
+        return {
+            "alexaHistoryRecords": [
+                history_row(int(dt_util.utcnow().timestamp() * 1000), text="newer phrase")
+            ]
+        }
+
+    remote_history.side_effect = history
+    payload = {
+        "dopplerId": {"deviceSerialNumber": "speaker-a", "deviceType": "A20E9PVI3HANVQ"},
+        "volumeSetting": 22,
+        "isMuted": False,
+    }
+    await upstream.api._http2_push_event_handler("PUSH_VOLUME_CHANGE", payload)
+    try:
+        await asyncio.wait_for(started.wait(), 1)
+        freezer.tick(timedelta(seconds=1))
+        await upstream.api._http2_push_event_handler("PUSH_VOLUME_CHANGE", payload)
+    finally:
+        release.set()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert requests == 2
+    assert next(iter(hass.states.async_all("event"))).attributes["voice_command"] == "newer phrase"

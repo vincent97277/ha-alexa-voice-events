@@ -4,6 +4,7 @@ import asyncio
 from datetime import timedelta
 from pathlib import Path
 
+import pytest
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
@@ -124,8 +125,9 @@ async def test_entity_rename_keeps_the_blueprint_control_binding(hass, upstream,
     assert calls == ["alexa test phrase"]
 
 
-async def test_off_on_revokes_queued_actions_but_not_a_running_user_action(
-    hass, upstream, remote_history, freezer
+@pytest.mark.parametrize("revocation", ["off_on", "expired"])
+async def test_revoked_queued_actions_do_not_cancel_a_running_user_action(
+    hass, upstream, remote_history, freezer, revocation
 ):
     _entry, _event_id, calls = await install_blueprint(hass, upstream)
     started, release = asyncio.Event(), asyncio.Event()
@@ -169,8 +171,13 @@ async def test_off_on_revokes_queued_actions_but_not_a_running_user_action(
             break
         await asyncio.sleep(0)
     assert hass.states.get("automation.test_voice").attributes["current"] == 2
-    await hass.services.async_call("switch", "turn_off", {"entity_id": switch_id}, blocking=True)
-    await hass.services.async_call("switch", "turn_on", {"entity_id": switch_id}, blocking=True)
+    if revocation == "off_on":
+        await hass.services.async_call(
+            "switch", "turn_off", {"entity_id": switch_id}, blocking=True
+        )
+        await hass.services.async_call("switch", "turn_on", {"entity_id": switch_id}, blocking=True)
+    else:
+        freezer.tick(timedelta(seconds=15))
     release.set()
     await hass.async_block_till_done()
     assert calls == ["alexa test phrase"]

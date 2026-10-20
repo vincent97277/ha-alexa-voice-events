@@ -16,7 +16,7 @@ The planned first release is 0.1.0. Public repository creation, HACS distributio
 - Publish an event containing recognized text, source and receive times, opaque record/session identity, the HA device and its current reception control.
 - A reception switch revokes old work on off/on. Compact sensors expose status, last accepted voice time and a sanitized error code. In this slice, a fetch error stops reception until off/on; automatic account/fault recovery is later work.
 - The Blueprint matches literal phrase variants after trimming, lowercasing and collapsing whitespace. Include `alexa` in a configured phrase if it appears in the observed text; no semantic or household intent mapping is performed.
-- Queued actions recheck freshness, switch state and session immediately before user actions. Already-running arbitrary user actions are not canceled by the receiver.
+- Queued actions recheck freshness, switch state and session immediately before user actions. Already-running arbitrary user actions are not canceled by the receiver. HA automation mode is user-editable: open the created automation in YAML and override `mode` (default `queued`) and `max` (default `10`) to suit your action sequence.
 
 Voice events contain text and follow HA recorder policy. There is no additional voice-history store, scene registry, Xiaomi dependency, measurement workflow or music-recovery logic.
 

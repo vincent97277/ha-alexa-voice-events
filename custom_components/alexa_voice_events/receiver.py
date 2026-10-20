@@ -45,6 +45,7 @@ class AccountReceiver:
         self._task: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
         self._closed = False
+        self._latest_push = self.session.started_at
 
     def _new_session(self) -> VoiceSession:
         return VoiceSession(
@@ -84,12 +85,13 @@ class AccountReceiver:
     @callback
     def _pushed(self) -> None:
         if self.enabled and not self._closed and self.state == "ready":
+            self._latest_push = dt_util.utcnow()
             if self._task is None or self._task.done():
                 self._task = self.hass.async_create_background_task(
-                    self._fetch(self.session, dt_util.utcnow()), f"{DOMAIN}-history"
+                    self._fetch(self.session), f"{DOMAIN}-history"
                 )
 
-    async def _fetch(self, session: VoiceSession, pushed_at: datetime) -> None:
+    async def _fetch(self, session: VoiceSession) -> None:
         try:
             for _attempt in range(2):
                 record = await asyncio.wait_for(self.adapter.fetch(), timeout=20)
@@ -105,7 +107,9 @@ class AccountReceiver:
                         for listener in tuple(self._voice_listeners):
                             listener(event.copy())
                         self._notify()
-                if record is not None and record.timestamp >= int(pushed_at.timestamp() * 1000):
+                if record is not None and record.timestamp >= int(
+                    self._latest_push.timestamp() * 1000
+                ):
                     break
         except asyncio.CancelledError:
             raise
