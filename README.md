@@ -1,12 +1,35 @@
 # Alexa Voice Events
 
+[繁體中文](README.zh-TW.md)
+
 Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices account and speakers, then use a phrase-to-action Blueprint or ordinary HA automations to decide what happens.
 
 ## Development status
 
-This is the **Ticket 03 local implementation**, not a published or hardware-verified release. Each official Alexa account has at most one entry with multiple selected speakers. Native upstream updates and push-triggered compatibility share the same generic event contract. HA options support selection and method changes without reloading unaffected speakers. Enabled reception now waits for the selected account and recovers through availability changes, API replacement and reload using fresh sessions.
+This is a public **development build**. Multi-account/multi-speaker selection and recovery are implemented and software-tested. The manifest's `0.1.0` is the planned first version; there is **no formal tag/release yet**. New Uxbridge/Blueprint hardware acceptance is pending; legacy results do not verify this implementation. Other speakers require explicit opt-in and are unverified.
 
-The planned first release is 0.1.0. Public repository creation, HACS distribution, the Traditional Chinese README and CI publication belong to the publication ticket. New Uxbridge/Blueprint hardware acceptance is required before the formal tag/release. Previous-component results do not verify this implementation.
+## Installation
+
+Requires **Home Assistant Core 2026.10.1** and its official **Alexa Devices** integration using **aioamazondevices 16.3.2**. Add/authenticate the official integration first. Other Core/client combinations are unsupported until reviewed and tested; do not downgrade Core for this integration.
+
+Choose one installation method:
+
+- **Manual:** download this repository, copy only `custom_components/alexa_voice_events` into your HA configuration's `custom_components/` directory (normally `/config/custom_components/alexa_voice_events`), then restart HA.
+- **HACS custom repository:** in HACS → ⋮ → Custom repositories, add `https://github.com/vincent97277/ha-alexa-voice-events` with category **Integration**, download Alexa Voice Events, then restart HA. This project is not in the default HACS store. Before the first release HACS installs the default branch; it is a changing development build.
+
+In HA → Settings → Devices & services → Add integration, choose **Alexa Voice Events**, select an existing Alexa Devices account and its speakers. Configure reception as described below. No additional Amazon login is needed.
+
+For a reproducible runtime reference, the software-tested pre-publication revision is [`4944eea`](https://github.com/vincent97277/ha-alexa-voice-events/tree/4944eeabc51e4735d189c8db4a51ea31a65aca44). Its runtime and Blueprint match this publication; HACS metadata, CI and bilingual installation documentation were added afterward. Download that revision manually to pin that runtime. Record your installed commit separately from the manifest version. A future formal release will use matching integration and Blueprint tag references after hardware acceptance.
+
+## Blueprint
+
+Open HA → Settings → Automations & scenes → Blueprints → Import Blueprint and paste:
+
+```text
+https://github.com/vincent97277/ha-alexa-voice-events/blob/4944eeabc51e4735d189c8db4a51ea31a65aca44/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+```
+
+Importing the Blueprint is independent of installing the integration. Create an automation from it, select the speakers' voice event entities, enter one literal phrase per line, and choose HA actions. Installing/importing creates no household automation automatically. Use ordinary HA automations for more complex rules; official Alexa Devices actions remain available in HA. Disable overlapping legacy consumers when switching household actions to this integration to avoid duplicate actions.
 
 ## Current behavior
 
@@ -25,17 +48,17 @@ Reception status distinguishes `disabled`, `ready`, `waiting`, `error` and `unsu
 
 Voice events contain text and follow HA recorder policy. There is no additional voice-history store, scene registry, Xiaomi dependency, measurement workflow or music-recovery logic.
 
-## Local use
+## Reception settings
 
-Use HA Core **2026.10.1** with **aioamazondevices 16.3.2**; unsupported combinations display an unsupported reception state and leave the official integration alone. Install the custom component in an HA development configuration, restart/load it, and add **Alexa Voice Events**. Select the existing account and one or more voice-capable speakers, then review each speaker’s reception method. Add another integration entry for another existing account; cross-account selections and duplicate account entries are rejected.
+Use HA Core **2026.10.1** with **aioamazondevices 16.3.2**; unsupported combinations display an unsupported reception state and leave the official integration alone. Select the existing account and one or more voice-capable speakers, then review each speaker’s reception method. Add another integration entry for another existing account; cross-account selections and duplicate account entries are rejected.
 
 Use the integration’s **Configure** options to add/remove speakers or change methods. `native` observes official Alexa Devices history updates; `volume_push` uses matching speaker pushes to fetch history. Only the necessary method and opt-in choices are exposed; scheduling limits stay internal.
 
 The Marshall Uxbridge profile suggests `volume_push` using **legacy Uxbridge evidence**. It starts enabled when first selected, without claiming new hardware acceptance. Unknown speakers default to `native`; they and overrides of a known profile’s suggested method stay disabled until **Explicitly allow this unverified speaker / method** is checked. A reception switch cannot bypass this opt-in. Tests/selection never promote a device to verified. The status sensor exposes `method`, `validation_scope` (`legacy_uxbridge` or `unverified`) and `new_hardware_acceptance: pending`.
 
-Copy the supplied automation Blueprint into that development configuration's Blueprint collection and reload Blueprints. Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
+Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
 
-Keep any legacy voice consumer disabled if using replacement household actions. This ticket has not installed files, restarted live HA, spoken through a device or modified household settings. The development selection format changed after Ticket 01; recreate any disposable Ticket 01 test entry when trying this pre-release build.
+No live household installation or new hardware acceptance has been performed for this development build. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
 
 ## Tests and typing
 

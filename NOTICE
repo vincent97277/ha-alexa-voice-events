@@ -1,0 +1,15 @@
+Alexa Voice Events
+Copyright 2026 Vincent Lin
+Licensed under the Apache License, Version 2.0.
+
+This project reworks the author's earlier local Alexa history compatibility
+implementation into an independent, generic Home Assistant integration.
+Household commands and trial/measurement workflows are not included.
+
+Interoperability and test dependencies (not vendored):
+- Home Assistant Core 2026.10.1, Home Assistant contributors, Apache-2.0:
+  https://github.com/home-assistant/core/tree/2026.10.1
+- aioamazondevices 16.3.2, Simone Chemelli and contributors, Apache-2.0:
+  https://github.com/chemelli74/aioamazondevices/tree/v16.3.2
+Tests execute installed dependencies with synthetic records and identifiers;
+no upstream parser excerpts or household recordings are redistributed.

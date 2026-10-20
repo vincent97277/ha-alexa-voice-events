@@ -1,0 +1,34 @@
+name: Checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e
+        with:
+          version: "0.13.3"
+      - run: uv sync --locked
+      - run: uv run pytest
+      - run: uv run mypy
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: home-assistant/actions/hassfest@cd6f3635a740c84d8a14f6121a90068b8ece6bf6
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa
+        with:
+          category: integration
+          ignore: brands
+          comment: false
