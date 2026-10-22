@@ -19,8 +19,9 @@ Scope: acceptance covers voice-to-action and reception/reload authority on this 
 
 ## Unreleased reply candidate: 2026-10-22
 
-The candidate evaluation records **scoped passes and explicit limitations**;
-final delivery review is pending. This section does not change the scope of the
+The candidate evaluation is **complete with scoped passes and explicit limitations**.
+Standards and specification reviews found no blocking findings for this scoped
+delivery. This section does not change the scope of the
 v0.1.0 release above. Component and Blueprint runtime are pinned to
 `e5fd04015b3bc3349da48abf702e3bc2f3f37ea4`; subsequent commit `809a7b3` changes
 documentation only. The candidate was exported locally and manually installed;
