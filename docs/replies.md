@@ -32,6 +32,42 @@ For example, set a reply template such as `The recorded value is
 own. Sensor selection, units, missing-value wording and sampling-age policy are
 household automation concerns. No brand or room rules are built into the integration.
 
+### Adapt a sensor query without changing the integration
+
+Create an automation from the matching Blueprint. Select your voice event entities,
+enter the exact recognized phrases (including a wake-word variant when present),
+and leave Actions empty if the automation only answers a question. Paste a reply
+template into Reply message; leave Reply speaker empty for the triggering speaker.
+For example, replace the placeholder entity in this template with your own:
+
+```jinja
+{% set entity = 'sensor.example_measurement' %}
+{% set value = states(entity) %}
+{% set unit = state_attr(entity, 'unit_of_measurement') %}
+{% if is_number(value) and unit %}
+Home Assistant reports {{ value }} {{ unit }}.
+{% else %}
+The recorded measurement is currently unavailable in Home Assistant.
+{% endif %}
+```
+
+This is household wording, not a built-in intent or sensor policy. Choose your own
+unit conversion, precision and missing-value wording. Check validity before numeric
+conversion; do not turn unknown, unavailable, absent or non-finite values into zero.
+Zero itself can be a valid reading. For several sensors, answer the available parts
+and explicitly describe missing parts. A unit mismatch must not be relabelled as
+another unit. HA state timestamps are not necessarily sensor sampling timestamps;
+use “Home Assistant reports” unless a trustworthy source supplies sampling time.
+
+Preview the template in HA's template editor without assigning fake states to live
+sensors. Save backups of the component, actual imported Blueprint file, affected
+automations and enabled states before migration. Disable overlapping phrase consumers,
+install the component and Blueprint from one fixed build, validate configuration,
+then enable one automation at a time. Rollback restores all of those items together;
+restoring only the component leaves the new Blueprint depending on unavailable actions.
+Keep unrelated integrations and household scripts intact. A successful preview is
+not evidence that Alexa spoke, stopped its native reply or delivered the message.
+
 The call order is Stop on source A, your Actions, then optional notify on reply B.
 Choosing B never adds a Stop on B. Templates read the data after Actions, not at
 trigger time. Strings and finite numbers become text; null or whitespace is not

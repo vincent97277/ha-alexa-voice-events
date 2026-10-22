@@ -22,6 +22,14 @@ Stop 目標缺少或呼叫報錯，不阻擋仍有效的家庭 actions 與回覆
 
 `resolve_targets` 只回傳 registry 目標與固定原因；source_valid 只表示目前身分綁定，不是舊事件的執行授權，也不發聲或連 Amazon。官方呼叫返回只表示本機呼叫／入列，不能當成雲端送達、停止追問或播完；上游本身仍可能重試 HTTP。已入列命令無法撤回，未到 HA 的較新發話無法提前知道，跨自動化共用音箱仍可能重疊。其他音箱、中止追問、Speak／Announce 與自我辨識效果需分別驗收，不能沿用接收測試宣稱已通過。
 
+### 用任意感測器建立查詢
+
+從同一版本 Blueprint 建立自動化，選來源語音事件、逐行填辨識口令，純查詢的 Actions 可留空；在 Reply message 填 HA 模板，Reply speaker 留空就是本次發話音箱。感測實體、單位、格式及缺值句型都在家庭模板調整，無須改整合或增加型號規則。[英文設定範例](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)示範任意感測器的有限數字／單位檢查。
+
+先檢查有效性再轉數字；unknown／unavailable、不存在、非有限值或單位不符不補成 0，真的 0 仍可有效。多項讀值可部分回答並明說缺值；使用 Home Assistant reports 表達 HA 記錄，不以一般 state 時間冒稱採樣時間。在 HA 模板編輯器唯讀預覽，不修改現役感測器 state 製造錯誤。
+
+遷移前保存元件、實際匯入的 Blueprint 檔案、受影響自動化及啟用狀態；停用重疊消費者後，元件與 Blueprint 切換到同一固定建置，檢查設定並逐個啟用。回復時三者一起還原，不能只降元件而留下新版 Blueprint 對新動作的依賴。保留無關整合與家庭腳本；模板預覽不等於實際播報／中止成功。
+
 ## 安裝
 
 選擇一種方式：
