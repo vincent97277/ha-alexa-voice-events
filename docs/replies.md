@@ -1,9 +1,12 @@
 # Development: interruption and replies
 
 These features are **unreleased development changes**, not part of the tagged
-v0.1.0 installation. They have software checks; new Stop/Speak/Announce hardware
-acceptance and formal release belong to later delivery steps. Existing v0.1.0
-hardware acceptance proves its recorded reception/action scope only.
+v0.1.0 installation. The fixed development candidate has software checks and
+[scoped Uxbridge hardware evidence](hardware-acceptance.md): source Speak and
+existing household actions passed; native interruption is unreliable. Already
+submitted speech may continue while a newer native answer waits. Announce, active
+media effects and other speakers remain unverified. Formal release is a separate
+step. Existing v0.1.0 evidence proves its recorded reception/action scope only.
 
 ## Configure an automation
 

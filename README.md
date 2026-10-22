@@ -11,8 +11,12 @@ Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices 
 ## Unreleased interruption and replies
 
 The development checkout adds optional native-reply interruption, HA template
-replies and read-only official-target lookup. These are **not in v0.1.0** and have
-not yet passed the new hardware acceptance. See [configuration, API and limits](docs/replies.md).
+replies and read-only official-target lookup. These are **not in v0.1.0**.
+Scoped hardware results are recorded for the fixed development candidate: source
+Speak and existing household actions passed, while native interruption is unreliable
+and already-submitted speech may finish before a newer native answer. Announce and
+other speakers remain unverified. See [hardware evidence](docs/hardware-acceptance.md)
+and [configuration, API and limits](docs/replies.md).
 When adopting the updated Blueprint, interruption defaults on and can stop music;
 keep the component and imported Blueprint on the same fixed commit.
 

@@ -19,7 +19,8 @@ Scope: acceptance covers voice-to-action and reception/reload authority on this 
 
 ## Unreleased reply candidate: 2026-10-22
 
-Acceptance is **in progress**. This section does not change the scope of the
+The candidate evaluation records **scoped passes and explicit limitations**;
+final delivery review is pending. This section does not change the scope of the
 v0.1.0 release above. Component and Blueprint runtime are pinned to
 `e5fd04015b3bc3349da48abf702e3bc2f3f37ea4`; subsequent commit `809a7b3` changes
 documentation only. The candidate was exported locally and manually installed;
@@ -51,6 +52,6 @@ Recognition mismatches can prevent an automation from running at all. This is
 separate from a matched run that sends Stop but fails to end native dialogue.
 Local service completion does not confirm that Amazon delivered, stopped or
 finished audio. Native short-answer, long-answer and Follow-Up behavior are not
-individually certified. Rapid-event and self-recognition acceptance is not yet
-complete. No runtime retry, text-command fallback, fixed speech wait or permanent
+individually certified. Rapid-event and self-recognition results are limited to the observations above;
+they do not certify interruption of submitted speech or every push callback. No runtime retry, text-command fallback, fixed speech wait or permanent
 Follow-Up setting change was introduced to hide these limitations.
