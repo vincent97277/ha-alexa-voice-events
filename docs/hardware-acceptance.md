@@ -44,6 +44,7 @@ replacement. Existing BLE consumers and shared household actions were preserved.
 | Interruption disabled, reply blank | Three matched household-action runs issued no managed Stop or notify. The user confirmed correct lights, uninterrupted native answers and no HA speech in all three. Response speed was not separately confirmed. The interruption setting was restored and read back afterward. |
 | Reception disabled and re-enabled | Three utterances while disabled produced no chosen action or HA reply. One re-enable cycle produced no old replay. New-query stability and recognition were investigated separately. This is one switch cycle, not three. |
 | Rapid instructions | One valid query/native pair had no audible late reply interference; two other attempted pairs did not match the query phrase and do not count as successful pairs. Additional valid-pair acceptance remains pending. |
+| Non-speech volume operation | One paused-speaker volume change from 35% to 36% and back was read back. Over approximately one minute the voice event and all three household automation latest-run IDs stayed unchanged; reception remained ready. This does not independently prove the internal push callback/history fetch ran, or certify all push types. |
 | Announce, active-media effects, other speakers and cross-speaker audio | Unverified. No automatic music restoration was added. |
 
 Recognition mismatches can prevent an automation from running at all. This is
