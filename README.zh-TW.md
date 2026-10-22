@@ -69,6 +69,6 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
-測試使用真實 HA 設定、實體生命週期與自動化／Blueprint 引擎，以及上游 coordinator／dispatcher／parser；只控制遠端回應與時鐘，禁用外部 socket，使用合成資料。這證明軟體行為，不代表 Amazon 傳遞、實體動作或其他音箱已驗證。CI 另以 hassfest 與 HACS action 驗證封裝；HACS 的品牌商店檢查不適用自訂儲存庫，因此略過 `brands`。
+測試使用真實 HA 設定、實體生命週期與自動化／Blueprint 引擎，以及上游 coordinator／dispatcher／parser；控制遠端回應、時鐘與官方 Stop／notify 服務邊界，不呼叫 Amazon 音箱；禁用外部 socket，使用合成資料。這證明軟體行為，不代表 Amazon 傳遞、實體動作或其他音箱已驗證。CI 另以 hassfest 與 HACS action 驗證封裝；HACS 的品牌商店檢查不適用自訂儲存庫，因此略過 `brands`。
 
 [Apache-2.0](LICENSE)，來源與第三方歸屬見 [NOTICE](NOTICE)。測試執行安裝的相依套件，未散佈上游 parser 摘錄或家庭錄音。相容邏輯由原本本機實作重構，已移除家庭依賴。

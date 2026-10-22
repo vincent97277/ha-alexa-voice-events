@@ -1,14 +1,17 @@
 """Exercise interruption and replies through the real HA automation engine."""
 
 import asyncio
+import json
 from datetime import timedelta
 
 import probatio
 import pytest
 from homeassistant.components.notify.const import NOTIFY_SERVICE_SCHEMA
+from homeassistant.components.trace.util import async_get_trace, async_list_traces
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.json import ExtendedJSONEncoder
 from homeassistant.util import dt as dt_util
 
 from .conftest import history_row
@@ -258,6 +261,22 @@ async def test_old_reply_is_dropped_after_household_action(
     await hass.async_block_till_done()
     assert effects == ["completed"]
     assert spoken == []
+    if change in ("newer_unmatched", "expired", "off_on"):
+        reasons = set()
+        for run in await async_list_traces(hass, "automation", "automation.test_voice"):
+            trace = await async_get_trace(hass, "automation.test_voice", run["run_id"])
+            exported = json.loads(json.dumps(trace, cls=ExtendedJSONEncoder))
+            for steps in exported["trace"].values():
+                for step in steps:
+                    reason = step.get("changed_variables", {}).get("voice_guard_reason")
+                    if reason:
+                        reasons.add(reason)
+        expected_reason = {
+            "newer_unmatched": "event_superseded",
+            "expired": "event_expired",
+            "off_on": "session_revoked",
+        }[change]
+        assert expected_reason in reasons
 
 
 @pytest.mark.parametrize("template, expected", [("{{ 0 }}", "0"), ("{{ 25.1 }}", "25.1")])

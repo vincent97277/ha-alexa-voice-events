@@ -119,3 +119,12 @@ unsupported_capability, entity_not_found, ambiguous_entity, entity_disabled and
 entity_unavailable. Raw errors, credentials, account names and serials are not
 returned. Detailed software evidence is in the HA action/automation tests; physical
 acceptance remains separate.
+
+### Reading a rejected voice trace
+
+Each voice guard records `voice_guard_reason` before deciding whether to continue:
+`ready`, `source_mismatch`, `event_superseded`, `reception_disabled`,
+`session_revoked`, `invalid_timestamp`, `future_timestamp` or `event_expired`.
+When several checks fail, the first applicable reason is recorded. Target resolver
+results separately explain account binding and individual action-role failures.
+These values describe local checks and never confirm remote delivery.

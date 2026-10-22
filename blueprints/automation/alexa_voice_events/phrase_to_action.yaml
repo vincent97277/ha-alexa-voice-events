@@ -97,25 +97,39 @@ actions:
       {% set phrases = configured_phrases.split('\n') | map('trim') | map('lower')
           | map('regex_replace', '\\s+', ' ') | reject('eq', '') | list %}
       {{ text in phrases }}
+  - &voice_guard
+    alias: Record current voice authorization reason
+    variables:
+      voice_guard_reason: >-
+        {% set source_ms = envelope.get('source_timestamp_ms') %}
+        {% set received_ms = as_timestamp(envelope.get('received_at'), 0) * 1000 %}
+        {% set now_ms = as_timestamp(now()) * 1000 %}
+        {% set reception = envelope.get('reception_entity_id', '') %}
+        {% if not envelope.get('device_id') or not envelope.get('event_id')
+              or device_id(trigger.entity_id) != envelope.get('device_id')
+              or state_attr(trigger.entity_id, 'device_id') != envelope.get('device_id')
+              or device_id(reception) != envelope.get('device_id') %}
+          source_mismatch
+        {% elif state_attr(trigger.entity_id, 'event_id') != envelope.get('event_id') %}
+          event_superseded
+        {% elif not is_state(reception, 'on') %}
+          reception_disabled
+        {% elif not envelope.get('session_id')
+              or state_attr(reception, 'session_id') != envelope.get('session_id') %}
+          session_revoked
+        {% elif source_ms is not integer or received_ms <= 0 %}
+          invalid_timestamp
+        {% elif now_ms < source_ms or now_ms < received_ms %}
+          future_timestamp
+        {% elif now_ms - source_ms >= 15000 or now_ms - received_ms >= 15000 %}
+          event_expired
+        {% else %}
+          ready
+        {% endif %}
   - &current_voice
     alias: Reject superseded, revoked or expired voice work
     condition: template
-    value_template: >-
-      {% set source_ms = envelope.get('source_timestamp_ms') %}
-      {% set received_ms = as_timestamp(envelope.get('received_at'), 0) * 1000 %}
-      {% set now_ms = as_timestamp(now()) * 1000 %}
-      {% set reception = envelope.get('reception_entity_id', '') %}
-      {{ source_ms is integer
-         and 0 <= now_ms - source_ms < 15000
-         and 0 <= now_ms - received_ms < 15000
-         and envelope.get('device_id') and envelope.get('event_id')
-         and device_id(trigger.entity_id) == envelope.get('device_id')
-         and state_attr(trigger.entity_id, 'device_id') == envelope.get('device_id')
-         and state_attr(trigger.entity_id, 'event_id') == envelope.get('event_id')
-         and device_id(reception) == envelope.get('device_id')
-         and envelope.get('session_id')
-         and is_state(reception, 'on')
-         and state_attr(reception, 'session_id') == envelope.get('session_id') }}
+    value_template: "{{ voice_guard_reason == 'ready' }}"
   - &resolve_targets
     alias: Resolve current official targets (read-only)
     action: alexa_voice_events.resolve_targets
@@ -128,11 +142,13 @@ actions:
     condition: template
     value_template: >-
       {{ targets.source_valid and targets.source_device_id == envelope.get('device_id') }}
+  - *voice_guard
   - *current_voice
   - if:
       - condition: template
         value_template: "{{ interrupt_native_reply and targets.stop.entity_id is not none }}"
     then:
+      - *voice_guard
       - *current_voice
       - alias: Attempt native reply interruption (delivery unknown)
         action: media_player.media_stop
@@ -141,15 +157,19 @@ actions:
         continue_on_error: true
   - *resolve_targets
   - *source_binding
+  - *voice_guard
   - *current_voice
   - sequence: !input actions
+  - *voice_guard
   - *current_voice
   - *resolve_targets
   - *source_binding
+  - *voice_guard
   - *current_voice
   - alias: Render optional reply using data after household actions
     variables:
       rendered_reply: !input reply_message
+  - *voice_guard
   - *current_voice
   - alias: Explain reply disposition without inventing a delivery receipt
     variables:
@@ -169,6 +189,7 @@ actions:
       - condition: template
         value_template: "{{ reply_reason == 'ready' }}"
     then:
+      - *voice_guard
       - *current_voice
       - alias: Request optional reply (delivery and playback completion unknown)
         action: notify.send_message
