@@ -13,7 +13,7 @@ from .conftest import history_row
 from .test_integration import configure, push
 
 
-async def install_blueprint(hass, upstream, *, entry=None, event_ids=None):
+async def install_blueprint(hass, upstream, *, entry=None, event_ids=None, inputs=None):
     if entry is None:
         entry = await configure(hass, upstream)
     if event_ids is None:
@@ -56,6 +56,7 @@ async def install_blueprint(hass, upstream, *, entry=None, event_ids=None):
                                     },
                                 }
                             ],
+                            **(inputs or {}),
                         },
                     },
                 }

@@ -24,8 +24,49 @@ blueprint:
       selector:
         text:
           multiline: true
+    interrupt_native_reply:
+      name: Attempt to interrupt the native reply
+      description: >-
+        Best effort; may stop music too. A successful action is not confirmation
+        that Alexa stopped talking or ended follow-up questions.
+      default: true
+      selector:
+        boolean: {}
+    reply_message:
+      name: Reply message
+      description: >-
+        Optional template, evaluated after your actions. Empty replies are not sent.
+        Use Home Assistant templates for sensors and household wording.
+      default: ""
+      selector:
+        template: {}
+    reply_device:
+      name: Reply speaker (optional)
+      description: >-
+        Leave empty to reply on the source speaker. A selected invalid speaker
+        never falls back to another device. Interruption always targets the source.
+      default: ""
+      selector:
+        device:
+          filter:
+            - integration: alexa_devices
+    advanced_reply:
+      name: Advanced reply settings
+      icon: mdi:message-text
+      collapsed: true
+      input:
+        reply_mode:
+          name: Reply mode
+          description: Speak reads directly; Announce adds an announcement sound.
+          default: speak
+          selector:
+            select:
+              options:
+                - speak
+                - announce
     actions:
       name: Actions
+      default: []
       selector:
         action: {}
 mode: queued
@@ -33,6 +74,9 @@ max: 10
 max_exceeded: silent
 variables:
   configured_phrases: !input phrases
+  interrupt_native_reply: !input interrupt_native_reply
+  reply_device: !input reply_device
+  reply_mode: !input reply_mode
 triggers:
   - trigger: state
     entity_id: !input voice_entities
@@ -52,15 +96,84 @@ actions:
       {% set text = envelope.get('voice_command', '') | trim | lower | regex_replace('\\s+', ' ') %}
       {% set phrases = configured_phrases.split('\n') | map('trim') | map('lower')
           | map('regex_replace', '\\s+', ' ') | reject('eq', '') | list %}
+      {{ text in phrases }}
+  - &current_voice
+    alias: Reject superseded, revoked or expired voice work
+    condition: template
+    value_template: >-
       {% set source_ms = envelope.get('source_timestamp_ms') %}
       {% set received_ms = as_timestamp(envelope.get('received_at'), 0) * 1000 %}
       {% set now_ms = as_timestamp(now()) * 1000 %}
       {% set reception = envelope.get('reception_entity_id', '') %}
-      {{ text in phrases and source_ms is integer
+      {{ source_ms is integer
          and 0 <= now_ms - source_ms < 15000
          and 0 <= now_ms - received_ms < 15000
          and envelope.get('device_id') and envelope.get('event_id')
+         and device_id(trigger.entity_id) == envelope.get('device_id')
+         and state_attr(trigger.entity_id, 'device_id') == envelope.get('device_id')
+         and state_attr(trigger.entity_id, 'event_id') == envelope.get('event_id')
+         and device_id(reception) == envelope.get('device_id')
          and envelope.get('session_id')
          and is_state(reception, 'on')
          and state_attr(reception, 'session_id') == envelope.get('session_id') }}
+  - &resolve_targets
+    alias: Resolve current official targets (read-only)
+    action: alexa_voice_events.resolve_targets
+    data: >-
+      {{ dict(source_entity_id=trigger.entity_id,
+              **({'reply_device_id': reply_device} if reply_device else {})) }}
+    response_variable: targets
+  - &source_binding
+    alias: Source binding is not permission to bypass voice checks
+    condition: template
+    value_template: >-
+      {{ targets.source_valid and targets.source_device_id == envelope.get('device_id') }}
+  - *current_voice
+  - if:
+      - condition: template
+        value_template: "{{ interrupt_native_reply and targets.stop.entity_id is not none }}"
+    then:
+      - *current_voice
+      - alias: Attempt native reply interruption (delivery unknown)
+        action: media_player.media_stop
+        target:
+          entity_id: "{{ targets.stop.entity_id }}"
+        continue_on_error: true
+  - *resolve_targets
+  - *source_binding
+  - *current_voice
   - sequence: !input actions
+  - *current_voice
+  - *resolve_targets
+  - *source_binding
+  - *current_voice
+  - alias: Render optional reply using data after household actions
+    variables:
+      rendered_reply: !input reply_message
+  - *current_voice
+  - alias: Explain reply disposition without inventing a delivery receipt
+    variables:
+      reply_target: "{{ targets.get(reply_mode, dict(entity_id=none, reason='unsupported_capability')) }}"
+      reply_reason: >-
+        {% if rendered_reply is none or (rendered_reply is string and not rendered_reply | trim) %}
+          empty_reply
+        {% elif not (rendered_reply is string or (rendered_reply is number
+                     and rendered_reply is not boolean and is_number(rendered_reply))) %}
+          invalid_reply_format
+        {% elif reply_target.entity_id is none %}
+          {{ reply_target.reason }}
+        {% else %}
+          ready
+        {% endif %}
+  - if:
+      - condition: template
+        value_template: "{{ reply_reason == 'ready' }}"
+    then:
+      - *current_voice
+      - alias: Request optional reply (delivery and playback completion unknown)
+        action: notify.send_message
+        target:
+          entity_id: "{{ reply_target.entity_id }}"
+        data:
+          message: "{{ rendered_reply | string }}"
+        continue_on_error: true

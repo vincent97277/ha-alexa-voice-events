@@ -8,6 +8,14 @@ Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices 
 
 **v0.1.0** has passed automated checks and scoped Marshall Uxbridge hardware acceptance on 2026-10-21. Multi-account/multi-speaker selection and recovery are software-tested; other speakers require explicit opt-in and remain unverified. See the [hardware acceptance report](docs/hardware-acceptance.md) for builds, checks and limits.
 
+## Unreleased interruption and replies
+
+The development checkout adds optional native-reply interruption, HA template
+replies and read-only official-target lookup. These are **not in v0.1.0** and have
+not yet passed the new hardware acceptance. See [configuration, API and limits](docs/replies.md).
+When adopting the updated Blueprint, interruption defaults on and can stop music;
+keep the component and imported Blueprint on the same fixed commit.
+
 ## Installation
 
 Requires **Home Assistant Core 2026.10.2** and its official **Alexa Devices** integration using **aioamazondevices 16.3.2**. Add/authenticate the official integration first. Other Core/client combinations are unsupported until reviewed and tested; do not downgrade Core for this integration.
@@ -58,7 +66,7 @@ The Marshall Uxbridge profile suggests `volume_push` using the documented Uxbrid
 
 Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
 
-This runtime was installed through HACS and confirmed on the tested Uxbridge instance; see the acceptance report for the exact build and limits. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
+The v0.1.0 release runtime was installed through HACS and confirmed on the tested Uxbridge instance; see the acceptance report for the exact build and limits. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
 
 ## Tests and typing
 

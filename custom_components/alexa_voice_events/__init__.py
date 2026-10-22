@@ -6,14 +6,22 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .receiver import AccountReceiver
+from .targets import setup as setup_targets
 
 type VoiceConfigEntry = ConfigEntry[AccountReceiver]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = [Platform.EVENT, Platform.SWITCH, Platform.SENSOR]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Expose the read-only action even when individual accounts unload."""
+    setup_targets(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: VoiceConfigEntry) -> bool:

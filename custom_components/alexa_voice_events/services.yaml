@@ -1,0 +1,21 @@
+resolve_targets:
+  name: Resolve official action targets
+  description: >-
+    Read-only lookup of Stop, Speak and Announce entities. Source validity means
+    current identity binding, not permission to execute an old voice event.
+  fields:
+    source_entity_id:
+      name: Source voice event
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: alexa_voice_events
+              domain: event
+    reply_device_id:
+      name: Reply speaker
+      description: Omit to use the source speaker. Invalid selections never fall back.
+      selector:
+        device:
+          filter:
+            - integration: alexa_devices
