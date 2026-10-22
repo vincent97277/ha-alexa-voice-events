@@ -1,12 +1,11 @@
-# Development: interruption and replies
+# Interruption and replies (v0.2.0)
 
-These features are **unreleased development changes**, not part of the tagged
-v0.1.0 installation. The fixed development candidate has software checks and
-[scoped Uxbridge hardware evidence](hardware-acceptance.md): source Speak and
-existing household actions passed; native interruption is unreliable. Already
-submitted speech may continue while a newer native answer waits. Announce, active
-media effects and other speakers remain unverified. Formal release is a separate
-step. Existing v0.1.0 evidence proves its recorded reception/action scope only.
+Use the v0.2.0 component and Blueprint together. The fixed runtime has software
+checks and [scoped Uxbridge hardware evidence](hardware-acceptance.md): source
+Speak and existing household actions passed; native interruption is unreliable.
+Already-submitted speech may continue while a newer native answer waits.
+Announce, active-media effects and other speakers remain unverified. The older
+v0.1.0 installation does not contain these reply features.
 
 ## Configure an automation
 
@@ -15,7 +14,7 @@ Updating the HACS component does not update an imported Blueprint. Before replac
 an imported Blueprint, save its actual content and the affected automations.
 
 Keep the existing voice-event selection, recognized phrase variants and Actions.
-The development Blueprint adds:
+The v0.2.0 Blueprint adds:
 
 - **Attempt to interrupt the native reply:** enabled by default. Only a matched,
   still-authorized event attempts Stop on its source speaker. This may stop music.
@@ -63,19 +62,38 @@ another unit. HA state timestamps are not necessarily sensor sampling timestamps
 use “Home Assistant reports” unless a trustworthy source supplies sampling time.
 
 Preview the template in HA's template editor without assigning fake states to live
-sensors. Save backups of the component, actual imported Blueprint file, affected
-automations and enabled states before migration. Disable overlapping phrase consumers,
-install the component and Blueprint from one fixed build, validate configuration,
-then enable one automation at a time. Rollback restores all of those items together;
-restoring only the component leaves the new Blueprint depending on unavailable actions.
-Keep unrelated integrations and household scripts intact. A successful preview is
-not evidence that Alexa spoke, stopped its native reply or delivered the message.
+sensors. A successful preview is not evidence that Alexa spoke, stopped its native
+reply or delivered the message.
 
 The call order is Stop on source A, your Actions, then optional notify on reply B.
 Choosing B never adds a Stop on B. Templates read the data after Actions, not at
 trigger time. Strings and finite numbers become text; null or whitespace is not
 spoken. Lists, mappings, booleans and other invalid reply results do not become
 spoken dumps. Template errors do not undo already-completed household effects.
+
+## Migration and rollback
+
+1. Save the current component directory, the **actual imported Blueprint file and
+   its path**, every affected automation's full configuration, and enabled states.
+   Keep these private. A URL or example automation is not a backup.
+2. Disable overlapping phrase consumers; preserve unrelated integrations and shared
+   household scripts. Install the v0.2.0 component, restart HA, and separately update
+   the Blueprint from the [same tag](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.2.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)
+   at the existing import path. HACS does not update imported Blueprints.
+3. Validate configuration, read back both installed sources, reload automations,
+   and enable consumers one at a time. Verify their real effects. Interruption is
+   enabled by default even when an older automation omits the new input; set it
+   false where Stop is unwanted. Blank reply text does not disable Stop.
+4. To roll back, disable affected consumers and restore the saved component,
+   original Blueprint at its original path, and full automation configs/enabled
+   states **together**. The [v0.1.0 source](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0)
+   remains available. Replace the complete component directory so new files such
+   as `targets.py` and `services.yaml` do not remain in a v0.1.0 installation.
+5. Restart HA, validate and reload, check reception, and test the original phrases.
+   Preserve official account configuration, BLE consumers and shared household
+   helpers/scripts. Check Core/client compatibility before restoring; do not
+   downgrade Core to satisfy the old integration. Already-enqueued Amazon commands
+   cannot be recalled by this rollback.
 
 ## Fresh work only
 

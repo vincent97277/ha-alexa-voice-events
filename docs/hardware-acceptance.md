@@ -13,7 +13,7 @@ The initial installed build was **3a9a4b1**, downloaded through HACS as a custom
 
 The corrected runtime **85e21d4** was downloaded through HACS and activated with a Core restart. Package metadata now runs in HA's executor; its blocking warnings did not recur in the new process. After restart, reception restored enabled with a fresh session and no old voice replay. The user then confirmed a new lights-off phrase worked with acceptable response. Its Blueprint/action completed; a subsequent ambient phrase also completed. This final runtime has **66 passing tests**, mypy, Ruff, and passing [tests/hassfest/HACS CI](https://github.com/vincent97277/ha-alexa-voice-events/actions/runs/39482568150).
 
-The released component and Blueprint are byte-identical to `85e21d4`; only release documentation follows that runtime commit. The initial off/re-enable/reload tests above exercised the same reception/session/Blueprint logic; the correction moves startup metadata I/O and updates evidence labels, without changing that logic. No legacy evidence or mock result substitutes for the new speech checks.
+The v0.1.0 component and Blueprint are byte-identical to `85e21d4`; only release documentation follows that runtime commit. The initial off/re-enable/reload tests above exercised the same reception/session/Blueprint logic; the correction moves startup metadata I/O and updates evidence labels, without changing that logic. No legacy evidence or mock result substitutes for the new speech checks.
 
 Scope: acceptance covers voice-to-action and reception/reload authority on this instance. It does not measure exact speech-end latency, certify Amazon delivery, test other speakers, claim long-term recovery, or recreate legacy spoken replies/music recovery. The official Alexa account and the existing independent BLE/scene consumer were preserved. Household mappings and private account/device identifiers are not part of this public repository.
 
@@ -25,7 +25,7 @@ delivery. This section does not change the scope of the
 v0.1.0 release above. Component and Blueprint runtime are pinned to
 `e5fd04015b3bc3349da48abf702e3bc2f3f37ea4`; subsequent commit `809a7b3` changes
 documentation only. The candidate was exported locally and manually installed;
-no new release has been published. Core 2026.10.2, HAOS 18.3 and Python 3.14.6
+no release was published during that evaluation. Core 2026.10.2, HAOS 18.3 and Python 3.14.6
 were read from the live instance. The 16.3.2 client baseline is supported
 indirectly by the runtime version gate and ready status, rather than a separate
 live package-metadata read.
@@ -56,3 +56,12 @@ finished audio. Native short-answer, long-answer and Follow-Up behavior are not
 individually certified. Rapid-event and self-recognition results are limited to the observations above;
 they do not certify interruption of submitted speech or every push callback. No runtime retry, text-command fallback, fixed speech wait or permanent
 Follow-Up setting change was introduced to hide these limitations.
+
+## v0.2.0 release mapping
+
+Version 0.2.0 keeps every Python runtime file and the Blueprint byte-identical to
+`e5fd04015b3bc3349da48abf702e3bc2f3f37ea4`; only the manifest version field changes
+inside the component. Project/lock version metadata and release documentation are
+updated consistently. The scoped hardware results above apply to that unchanged
+runtime, not to a new HACS installation or additional speaker certification.
+[Release notes](releases/v0.2.0.md) retain the interruption and submitted-audio limits.

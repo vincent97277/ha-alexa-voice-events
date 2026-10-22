@@ -6,19 +6,21 @@ Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices 
 
 ## Release status
 
-**v0.1.0** has passed automated checks and scoped Marshall Uxbridge hardware acceptance on 2026-10-21. Multi-account/multi-speaker selection and recovery are software-tested; other speakers require explicit opt-in and remain unverified. See the [hardware acceptance report](docs/hardware-acceptance.md) for builds, checks and limits.
+**v0.2.0** adds template replies, optional native-reply interruption and read-only
+official-target lookup. Source Speak, existing household actions and unmatched
+native requests have scoped Marshall Uxbridge hardware evidence. Native
+interruption is **unreliable**, and submitted speech may finish before a newer
+native answer. Announce, active-media effects and other speakers remain
+unverified. See the [hardware report](docs/hardware-acceptance.md) and
+[release notes](docs/releases/v0.2.0.md).
 
-## Unreleased interruption and replies
+## Interruption and replies
 
-The development checkout adds optional native-reply interruption, HA template
-replies and read-only official-target lookup. These are **not in v0.1.0**.
-Scoped hardware results are recorded for the fixed development candidate: source
-Speak and existing household actions passed, while native interruption is unreliable
-and already-submitted speech may finish before a newer native answer. Announce and
-other speakers remain unverified. See [hardware evidence](docs/hardware-acceptance.md)
-and [configuration, API and limits](docs/replies.md).
-When adopting the updated Blueprint, interruption defaults on and can stop music;
-keep the component and imported Blueprint on the same fixed commit.
+Configure phrases, household Actions and a template reply in the Blueprint;
+[configuration, API and limits](docs/replies.md) describe the complete flow.
+Interruption **defaults on** and may stop music. A blank reply does not disable
+Stop. Keep the component and imported Blueprint on the same fixed release;
+updating the HACS component does not update an existing Blueprint.
 
 ## Installation
 
@@ -31,14 +33,14 @@ Choose one installation method:
 
 In HA → Settings → Devices & services → Add integration, choose **Alexa Voice Events**, select an existing Alexa Devices account and its speakers. Configure reception as described below. No additional Amazon login is needed.
 
-The release targets Core 2026.10.2. Download [v0.1.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0), or its [source archive](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.1.0.zip) for manual installation. Record the installed tag/commit separately from the manifest version. The release's component and Blueprint are byte-identical to the hardware-tested runtime at `85e21d4`; subsequent changes are release documentation only. The older `4944eea` baseline targeted Core 2026.10.1 and is historical. See [compatibility review](docs/compatibility.md).
+The release targets Core 2026.10.2. Download [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0), or its [source archive](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.2.0.zip) for manual installation. Record the installed tag/commit separately from the manifest version. Python runtime files and the Blueprint match hardware-tested candidate `e5fd040`; the component manifest version is now 0.2.0. The candidate was manually installed; that is separate from installing this release through HACS. Keep the [v0.1.0 source](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0) and actual prior Blueprint/automation backups for rollback; see [migration and rollback](docs/replies.md#migration-and-rollback). The older `4944eea` Core 2026.10.1 baseline is historical; see [compatibility review](docs/compatibility.md).
 
 ## Blueprint
 
 Open HA → Settings → Automations & scenes → Blueprints → Import Blueprint and paste:
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.1.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.2.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
 Importing the Blueprint is independent of installing the integration. Create an automation from it, select the speakers' voice event entities, enter one literal phrase per line, and choose HA actions. Installing/importing creates no household automation automatically. Use ordinary HA automations for more complex rules; official Alexa Devices actions remain available in HA. Disable overlapping legacy consumers when switching household actions to this integration to avoid duplicate actions.
@@ -70,7 +72,7 @@ The Marshall Uxbridge profile suggests `volume_push` using the documented Uxbrid
 
 Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
 
-The v0.1.0 release runtime was installed through HACS and confirmed on the tested Uxbridge instance; see the acceptance report for the exact build and limits. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
+The v0.2.0 runtime was exercised as the fixed, manually installed candidate; the report distinguishes that from the earlier v0.1.0 HACS installation. See the acceptance report for exact builds and limits. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
 
 ## Tests and typing
 
