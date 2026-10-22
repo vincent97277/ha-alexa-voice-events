@@ -2,7 +2,9 @@
 
 This describes the development Blueprint, not the published v0.2.0 Blueprint.
 The short-phrase playback failure is still under investigation. Passing software
-tests does not establish reliable speaker playback.
+tests does not establish reliable speaker playback. A Blueprint-only candidate
+installation has [scoped Uxbridge checks](hardware-simplified-replies.md); native
+interruption and the earlier matched-Speak failure remain unresolved.
 
 ## Configure without a template
 
