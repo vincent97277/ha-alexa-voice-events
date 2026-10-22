@@ -16,6 +16,11 @@ unverified. See the [hardware report](docs/hardware-acceptance.md) and
 
 ## Interruption and replies
 
+Development only: the [simplified reply setup](docs/reply-simplification.md) removes
+reply-mode/target inputs and adds sensor selection. It is unreleased; short-phrase
+playback is still being investigated. The instructions below describe v0.2.0.
+For either version, see [choosing and checking recognized phrases](docs/recognized-phrases.md).
+
 Configure phrases, household Actions and a template reply in the Blueprint;
 [configuration, API and limits](docs/replies.md) describe the complete flow.
 Interruption **defaults on** and may stop music. A blank reply does not disable

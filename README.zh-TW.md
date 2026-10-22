@@ -12,6 +12,10 @@
 
 ## 中止與回覆
 
+開發中：新版 Blueprint 移除 Reply speaker／Reply mode，固定用 Speak 回到發話音箱；新增感測器選擇，自動組成回覆。尚未發布，短口令播報問題仍在調查；見[英文設定步驟](docs/reply-simplification.md)。以下說明仍是 v0.2.0 的行為。
+
+口令建議使用有明確語境的自然句子，並核對語音事件中的 `voice_command`；HA 的 Recognized phrases 不會訓練 Alexa。沒有逐字稿、口令未匹配及已呼叫 Speak 卻沒完整聲音，需分開排查；見[英文口令指南](docs/recognized-phrases.md)。
+
 在 Blueprint 設定口令、家庭 actions 與模板回覆；設定、API、資料／錯誤語義見[英文說明](docs/replies.md)。中止**預設開啟**，可能停止音樂；回覆空白只關閉 HA 播報，不會關閉 Stop。元件與 Blueprint 應使用同一固定版本；更新 HACS 元件後，**既有 Blueprint 必須另外更新**。
 
 採用新版 Blueprint 後，中止預設開啟，也可能停止音樂；可在每個自動化關閉。回覆文字可留空，預設用 Speak 回到本次發話音箱，也能另選單台音箱，Announce 在進階選項。A 發話、B 回覆時只中止 A。更新 HACS 整合不等於更新匯入的 Blueprint，兩者需使用同一固定 commit，變更前保存原 Blueprint 與自動化設定。

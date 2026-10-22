@@ -91,7 +91,7 @@ async def test_reply_renders_after_household_action(hass, upstream, remote_histo
 
 
 @pytest.mark.parametrize("mode", ["speak", "announce"])
-async def test_explicit_reply_speaker_never_changes_stop_source(
+async def test_saved_reply_options_cannot_redirect_source_speech(
     hass, upstream, remote_history, mode
 ):
     add_speaker(upstream, "speaker-b")
@@ -130,7 +130,7 @@ async def test_explicit_reply_speaker_never_changes_stop_source(
     }
     await push(hass, upstream)
     assert stopped == [targets["media"]]
-    assert spoken == [{"entity_id": [reply.entity_id], "message": "Synthetic reply"}]
+    assert spoken == [{"entity_id": [targets["speak"]], "message": "Synthetic reply"}]
 
 
 @pytest.mark.parametrize(
@@ -306,3 +306,140 @@ async def test_finite_numeric_reply_uses_official_text_validation(
     }
     await push(hass, upstream)
     assert spoken == [{"entity_id": [targets["speak"]], "message": expected}]
+
+
+async def test_selected_sensors_reply_uses_values_after_household_actions(
+    hass, upstream, remote_history
+):
+    entry, voice, targets = await prepare(hass, upstream)
+    spoken = []
+    attributes = {"friendly_name": "Room temperature", "unit_of_measurement": "°C"}
+    hass.states.async_set("sensor.synthetic_temperature", "20.0", attributes)
+    hass.states.async_set(
+        "sensor.synthetic_humidity",
+        "43",
+        {"friendly_name": "Room humidity", "unit_of_measurement": "%"},
+    )
+    hass.services.async_register(
+        "notify", "send_message", lambda call: spoken.append(dict(call.data))
+    )
+    await install_blueprint(
+        hass,
+        upstream,
+        entry=entry,
+        event_ids=[voice],
+        inputs={
+            "interrupt_native_reply": False,
+            "reply_sensors": ["sensor.synthetic_temperature", "sensor.synthetic_humidity"],
+        },
+    )
+    hass.services.async_register(
+        "test",
+        "record",
+        lambda call: hass.states.async_set("sensor.synthetic_temperature", "22.1", attributes),
+    )
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000))]
+    }
+    await push(hass, upstream)
+    assert spoken == [
+        {
+            "entity_id": [targets["speak"]],
+            "message": (
+                "Home Assistant reports: Room temperature is 22.1 °C; Room humidity is 43 %."
+            ),
+        }
+    ]
+
+
+@pytest.mark.parametrize("value", [None, "unknown", "unavailable", "not a number", "nan", "inf"])
+async def test_sensor_report_marks_invalid_measurements_unavailable(
+    hass, upstream, remote_history, value
+):
+    entry, voice, targets = await prepare(hass, upstream)
+    spoken = []
+    hass.states.async_set("sensor.zero", "0", {"friendly_name": "Zero", "unit_of_measurement": "%"})
+    if value is not None:
+        hass.states.async_set("sensor.missing", value, {"unit_of_measurement": "°C"})
+    hass.services.async_register(
+        "notify", "send_message", lambda call: spoken.append(call.data["message"])
+    )
+    await install_blueprint(
+        hass,
+        upstream,
+        entry=entry,
+        event_ids=[voice],
+        inputs={
+            "interrupt_native_reply": False,
+            "reply_sensors": ["sensor.zero", "sensor.missing"],
+        },
+    )
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000))]
+    }
+    await push(hass, upstream)
+    assert spoken == ["Home Assistant reports: Zero is 0 %; sensor.missing is unavailable."]
+
+
+async def test_custom_reply_overrides_selected_sensors(hass, upstream, remote_history):
+    entry, voice, targets = await prepare(hass, upstream)
+    spoken = []
+    hass.services.async_register(
+        "notify", "send_message", lambda call: spoken.append(call.data["message"])
+    )
+    await install_blueprint(
+        hass,
+        upstream,
+        entry=entry,
+        event_ids=[voice],
+        inputs={
+            "interrupt_native_reply": False,
+            "reply_sensors": ["sensor.missing"],
+            "reply_message": "Custom reply",
+        },
+    )
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000))]
+    }
+    await push(hass, upstream)
+    assert spoken == ["Custom reply"]
+
+
+@pytest.mark.parametrize(
+    ("value", "state_class", "expected"),
+    [
+        ("not a number", "measurement", "unavailable"),
+        ("1e9999", "measurement", "unavailable"),
+        ("1e9999", None, "unavailable"),
+        ("0", "measurement", "0"),
+        ("Open", None, "Open"),
+    ],
+)
+async def test_unitless_sensor_report_respects_measurement_metadata(
+    hass, upstream, remote_history, value, state_class, expected
+):
+    entry, voice, targets = await prepare(hass, upstream)
+    spoken = []
+    hass.states.async_set(
+        "sensor.unitless_measurement",
+        value,
+        {"friendly_name": "Measurement", **({"state_class": state_class} if state_class else {})},
+    )
+    hass.services.async_register(
+        "notify", "send_message", lambda call: spoken.append(call.data["message"])
+    )
+    await install_blueprint(
+        hass,
+        upstream,
+        entry=entry,
+        event_ids=[voice],
+        inputs={
+            "interrupt_native_reply": False,
+            "reply_sensors": ["sensor.unitless_measurement"],
+        },
+    )
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000))]
+    }
+    await push(hass, upstream)
+    assert spoken == [f"Home Assistant reports: Measurement is {expected}."]

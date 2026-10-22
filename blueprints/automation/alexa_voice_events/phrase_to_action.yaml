@@ -21,6 +21,8 @@ blueprint:
       description: >-
         One literal phrase per line. Case and repeated whitespace are ignored.
         Include the wake-word prefix if it appears in the recognized text.
+        Prefer a clear phrase with context over an ambiguous single word; verify
+        the actual voice_command before adding variants. This does not train Alexa.
       selector:
         text:
           multiline: true
@@ -32,38 +34,25 @@ blueprint:
       default: true
       selector:
         boolean: {}
+    reply_sensors:
+      name: Sensors to report
+      description: >-
+        Optional. Select sensors to build a reply without writing a template.
+        Uses Home Assistant's recorded values after your actions.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+          multiple: true
     reply_message:
       name: Reply message
       description: >-
-        Optional template, evaluated after your actions. Empty replies are not sent.
-        Use Home Assistant templates for sensors and household wording.
+        Optional text or template, evaluated after your actions. Overrides the sensor
+        report. Leave blank to report selected sensors, or select no sensors for silence.
       default: ""
       selector:
         template: {}
-    reply_device:
-      name: Reply speaker (optional)
-      description: >-
-        Leave empty to reply on the source speaker. A selected invalid speaker
-        never falls back to another device. Interruption always targets the source.
-      default: ""
-      selector:
-        device:
-          filter:
-            - integration: alexa_devices
-    advanced_reply:
-      name: Advanced reply settings
-      icon: mdi:message-text
-      collapsed: true
-      input:
-        reply_mode:
-          name: Reply mode
-          description: Speak reads directly; Announce adds an announcement sound.
-          default: speak
-          selector:
-            select:
-              options:
-                - speak
-                - announce
     actions:
       name: Actions
       default: []
@@ -75,8 +64,7 @@ max_exceeded: silent
 variables:
   configured_phrases: !input phrases
   interrupt_native_reply: !input interrupt_native_reply
-  reply_device: !input reply_device
-  reply_mode: !input reply_mode
+  reply_sensors: !input reply_sensors
 triggers:
   - trigger: state
     entity_id: !input voice_entities
@@ -134,8 +122,7 @@ actions:
     alias: Resolve current official targets (read-only)
     action: alexa_voice_events.resolve_targets
     data: >-
-      {{ dict(source_entity_id=trigger.entity_id,
-              **({'reply_device_id': reply_device} if reply_device else {})) }}
+      {{ dict(source_entity_id=trigger.entity_id) }}
     response_variable: targets
   - &source_binding
     alias: Source binding is not permission to bypass voice checks
@@ -168,12 +155,33 @@ actions:
   - *current_voice
   - alias: Render optional reply using data after household actions
     variables:
-      rendered_reply: !input reply_message
+      custom_reply: !input reply_message
+  - variables:
+      rendered_reply: >-
+        {% if custom_reply is none or (custom_reply is string and not custom_reply | trim) %}
+          {% set report = namespace(parts=[]) %}
+          {% for entity in reply_sensors %}
+            {% set name = state_attr(entity, 'friendly_name') or entity %}
+            {% set value = states(entity) %}
+            {% set unit = state_attr(entity, 'unit_of_measurement') %}
+            {% set numeric = unit or state_attr(entity, 'state_class')
+                in ['measurement', 'total', 'total_increasing'] %}
+            {% if not has_value(entity) or (numeric and not is_number(value))
+                  or ((value | float(none)) is not none and not is_number(value)) %}
+              {% set report.parts = report.parts + [name ~ ' is unavailable'] %}
+            {% else %}
+              {% set report.parts = report.parts + [name ~ ' is ' ~ value ~ (' ' ~ unit if unit else '')] %}
+            {% endif %}
+          {% endfor %}
+          {{ 'Home Assistant reports: ' ~ report.parts | join('; ') ~ '.' if report.parts else '' }}
+        {% else %}
+          {{ custom_reply }}
+        {% endif %}
   - *voice_guard
   - *current_voice
   - alias: Explain reply disposition without inventing a delivery receipt
     variables:
-      reply_target: "{{ targets.get(reply_mode, dict(entity_id=none, reason='unsupported_capability')) }}"
+      reply_target: "{{ targets.speak }}"
       reply_reason: >-
         {% if rendered_reply is none or (rendered_reply is string and not rendered_reply | trim) %}
           empty_reply
