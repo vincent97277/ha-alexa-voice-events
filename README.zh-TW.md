@@ -6,33 +6,24 @@
 
 ## 開發狀態與支援版本
 
-**v0.2.0** 新增 HA 模板回覆、可選的原生回覆中止及唯讀官方目標解析。來源 Speak、既有家電動作與未匹配原生功能有 Marshall Uxbridge 限定實機證據；原生中止**不可靠**，已送出的播報可能先播完，才聽到後來的原生回答。Announce、音樂播放中的副作用及其他音箱仍未驗證。精確版本、結果與限制見[驗收報告](docs/hardware-acceptance.md)及[英文版本說明](docs/releases/v0.2.0.md)。
+**v0.3.0** 簡化 Blueprint 回覆：選感測器即可自動產生回答，或填入自訂文字／模板。回覆固定以 Speak 送回本次發話音箱；Reply speaker／Reply mode 已移除，更新前請讀[遷移說明](docs/reply-simplification.md#updating-existing-automations)。感測器報告、既有模板、家庭燈光與原生問句有 [Uxbridge 限定驗收](docs/hardware-simplified-replies.md)。原生中止仍不可靠，這版不宣稱修復先前已呼叫 Speak 卻音訊不完整的問題；見[版本說明](docs/releases/v0.3.0.md)。
 
 需要 **HA Core 2026.10.2**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
 
 ## 中止與回覆
 
-開發中：新版 Blueprint 移除 Reply speaker／Reply mode，固定用 Speak 回到發話音箱；新增感測器選擇，自動組成回覆。尚未發布，短口令播報問題仍在調查；見[英文設定步驟](docs/reply-simplification.md)。以下說明仍是 v0.2.0 的行為。
+1. 從同版 Blueprint 建立自動化，選發話事件與逐行辨識口令，設定家庭 Actions；純查詢可留空。
+2. 在 **Sensors to report** 選感測器，**Reply message** 留空，即可依 Actions 後的 HA 記錄值回答。
+3. 需要自訂句型時填入 Reply message；非空文字／模板優先於感測器報告。可參考[數值模板](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)。
+4. 要完全不播 HA 回覆，同時清空感測器與 Reply message。Stop 是獨立開關，**預設開啟**，也可能停止音樂。
 
-口令建議使用有明確語境的自然句子，並核對語音事件中的 `voice_command`；HA 的 Recognized phrases 不會訓練 Alexa。沒有逐字稿、口令未匹配及已呼叫 Speak 卻沒完整聲音，需分開排查；見[英文口令指南](docs/recognized-phrases.md)。
+感測器名稱與單位沿用 HA，生成文字以英文為主；不自動換單位、調精度或推測採樣時間。缺值與無效數值明說 unavailable，不補成 0；真正的 0 仍可有效。[簡單設定](docs/reply-simplification.md)與[完整動作及限制](docs/replies.md)提供細節。
 
-在 Blueprint 設定口令、家庭 actions 與模板回覆；設定、API、資料／錯誤語義見[英文說明](docs/replies.md)。中止**預設開啟**，可能停止音樂；回覆空白只關閉 HA 播報，不會關閉 Stop。元件與 Blueprint 應使用同一固定版本；更新 HACS 元件後，**既有 Blueprint 必須另外更新**。
+口令選有明確語境的自然句子，核對 `voice_command`，再加入可接受的實際字面變體。HA 口令不會訓練 Alexa；沒有逐字稿、未匹配及已呼叫 Speak 卻沒完整聲音須分開排查，見[口令指南](docs/recognized-phrases.md)。
 
-採用新版 Blueprint 後，中止預設開啟，也可能停止音樂；可在每個自動化關閉。回覆文字可留空，預設用 Speak 回到本次發話音箱，也能另選單台音箱，Announce 在進階選項。A 發話、B 回覆時只中止 A。更新 HACS 整合不等於更新匯入的 Blueprint，兩者需使用同一固定 commit，變更前保存原 Blueprint 與自動化設定。
+每個受管理步驟前仍檢查事件、session、接收與十五秒期限；已開始的家庭 Actions 不強制中止，已送往 Amazon 的命令無法撤回。服務返回不代表停止追問或播完。`resolve_targets` 的進階唯讀 API 保留，使用者仍可自行組合一般 HA actions。
 
-順序是嘗試中止→家庭 actions→回覆模板求值。每個受管理步驟前重查本次來源／最新事件、接收／session、帳號與來源／接收時間未滿 15 秒；較新的同源事件即使不匹配，也會使尚未開始的舊步驟失效。已開始的使用者 actions 不強制中止；結束時若過期或撤權，剩餘回覆不補做。15 秒不是感測值採樣期限或呼叫／播完超時。
-
-Stop 目標缺少或呼叫報錯，不阻擋仍有效的家庭 actions 與回覆；家庭 actions 未處理錯誤則跳過原定回覆。目標不明不猜測、不換音箱，空白／錯誤格式不念出，已完成家電動作不回滾。每 run 至多一次受管理 Stop／notify，不加 Blueprint 重試、固定播完等待、文字 stop 備援、全域排程或 Spotify 恢復。
-
-`resolve_targets` 只回傳 registry 目標與固定原因；source_valid 只表示目前身分綁定，不是舊事件的執行授權，也不發聲或連 Amazon。官方呼叫返回只表示本機呼叫／入列，不能當成雲端送達、停止追問或播完；上游本身仍可能重試 HTTP。已入列命令無法撤回，未到 HA 的較新發話無法提前知道，跨自動化共用音箱仍可能重疊。其他音箱、中止追問、Speak／Announce 與自我辨識效果需分別驗收，不能沿用接收測試宣稱已通過。
-
-### 用任意感測器建立查詢
-
-從同一版本 Blueprint 建立自動化，選來源語音事件、逐行填辨識口令，純查詢的 Actions 可留空；在 Reply message 填 HA 模板，Reply speaker 留空就是本次發話音箱。感測實體、單位、格式及缺值句型都在家庭模板調整，無須改整合或增加型號規則。[英文設定範例](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)示範任意感測器的有限數字／單位檢查。
-
-先檢查有效性再轉數字；unknown／unavailable、不存在、非有限值或單位不符不補成 0，真的 0 仍可有效。多項讀值可部分回答並明說缺值；使用 Home Assistant reports 表達 HA 記錄，不以一般 state 時間冒稱採樣時間。在 HA 模板編輯器唯讀預覽，不修改現役感測器 state 製造錯誤。
-
-遷移前保存元件、實際匯入的 Blueprint 檔案、受影響自動化及啟用狀態；停用重疊消費者後，元件與 Blueprint 切換到同一固定建置，檢查設定並逐個啟用。回復時三者一起還原，不能只降元件而留下新版 Blueprint 對新動作的依賴。保留無關整合與家庭腳本；模板預覽不等於實際播報／中止成功。
+更新前備份實際元件、Blueprint、所有消費者設定與啟用狀態；**HACS 不會更新既有 Blueprint**。舊 `reply_device`／`reply_mode` 不再影響新版 Blueprint，依賴跨音箱或 Announce 的自動化需先調整。回復時同步還原原版本及設定；本次不新增重試、固定延遲或語音糾字功能。
 
 ## 安裝
 
@@ -43,7 +34,7 @@ Stop 目標缺少或呼叫報錯，不阻擋仍有效的家庭 actions 與回覆
 
 在 HA → 設定 → 裝置與服務 → 新增整合，選 **Alexa Voice Events**，選取既有 Alexa Devices 帳號與音箱。每個帳號最多一個項目，可選多個音箱；其他帳號另加項目，不能跨帳號選音箱。
 
-本版以 Core 2026.10.2 為目標。可下載 [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0)，或供手動安裝的[原始碼壓縮檔](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.2.0.zip)。另記安裝 tag／commit，不能只看 manifest 版本。Python 執行檔與 Blueprint 和實測候選 `e5fd040` 相同，元件 manifest 版本更新為 0.2.0；候選採手動安裝，不能冒稱已透過 HACS 安裝本正式 tag。保留 [v0.1.0 來源](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0)及舊 Blueprint／自動化實際備份，依[遷移與還原](docs/replies.md#migration-and-rollback)同時恢復三者。較早 `4944eea` 為 Core 2026.10.1 歷史基準，見[相容性查核](docs/compatibility.md)。
+下載 [v0.3.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0) 或[原始碼 ZIP](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.3.0.zip)。Blueprint 與實測候選 `88ad028` 相同，Python 行為沿用 v0.2.0，版本 metadata 為 0.3.0；候選 Blueprint 安裝不等於透過 HACS 安裝正式 tag。保留 [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0) 及實際備份，依[回復步驟](docs/replies.md#migration-and-rollback)處理。
 
 ## 設定與日常使用
 
@@ -60,14 +51,14 @@ Marshall Uxbridge 依已記錄的 Uxbridge 查核建議 `volume_push`，首次�
 HA → 設定 → 自動化與場景 → Blueprint → 匯入，貼上：
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.2.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
 匯入與整合安裝彼此獨立，不會自動建立家庭自動化。從 Blueprint 建立自動化，選音箱的語音事件、每行填一個完整口令，再選 HA 動作。比對會去除首尾空白、合併空白並轉小寫；若實際文字含 `alexa`，口令也要包含。複雜情境用 HA 自動化；官方 Alexa Devices 的播報等動作可直接在 HA 使用。
 
 預設 `queued`、`max: 10`，可在建立後的自動化 YAML 調整。排隊動作執行前重新檢查十五秒內的新鮮度、接收開關與 session；已執行中的任意使用者動作由 HA 管理。切換家庭動作時停用重疊的舊接收者，避免重複執行。
 
-語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。v0.2.0 執行內容以固定候選手動安裝並實測，與先前 v0.1.0 HACS 安裝分開記錄；精確版本與限制見驗收報告；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
+語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。v0.3.0 Blueprint 以固定候選安裝並實測，與正式 tag／HACS 安裝分開記錄；精確版本與限制見[本輪驗收](docs/hardware-simplified-replies.md)；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
 
 ## 開發與授權
 

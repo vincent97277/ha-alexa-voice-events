@@ -2,8 +2,8 @@
 
 Status: the Blueprint from commit `88ad0288cfd1a28735fcd2d3d61b5935514f8bd4`
 was installed and checked on one Marshall Uxbridge on **2026-10-23 (Asia/Taipei)**.
-It is unreleased. This report does not extend the published v0.2.0 acceptance or
-establish reliability on another speaker.
+v0.3.0 includes the same Blueprint. This report describes candidate installation,
+not a tagged HACS install, and does not establish reliability on another speaker.
 
 ## Build and deployment
 

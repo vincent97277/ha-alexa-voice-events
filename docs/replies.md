@@ -1,11 +1,10 @@
-# Interruption and replies (v0.2.0)
+# Interruption and replies (v0.3.0)
 
-Use the v0.2.0 component and Blueprint together. The fixed runtime has software
-checks and [scoped Uxbridge hardware evidence](hardware-acceptance.md): source
-Speak and existing household actions passed; native interruption is unreliable.
-Already-submitted speech may continue while a newer native answer waits.
-Announce, active-media effects and other speakers remain unverified. The older
-v0.1.0 installation does not contain these reply features.
+Use the v0.3.0 component and Blueprint together. The Blueprint matches hardware
+candidate `88ad028`; [scoped Uxbridge checks](hardware-simplified-replies.md) cover
+sensor reports, existing custom replies, household actions and unmatched native
+requests. Native interruption and earlier matched-Speak audio failures remain
+known limitations. Already-submitted speech cannot be recalled.
 
 ## Configure an automation
 
@@ -13,33 +12,29 @@ Use a component checkout and imported Blueprint from the **same fixed commit**.
 Updating the HACS component does not update an imported Blueprint. Before replacing
 an imported Blueprint, save its actual content and the affected automations.
 
-Keep the existing voice-event selection, recognized phrase variants and Actions.
-The v0.2.0 Blueprint adds:
+Keep your voice-event selection and household Actions; review recognized phrases
+against actual `voice_command` values. The standard reply setup is:
 
-- **Attempt to interrupt the native reply:** enabled by default. Only a matched,
-  still-authorized event attempts Stop on its source speaker. This may stop music.
-  Disable it for automations that should not stop the speaker. Adopting the updated
-  Blueprint changes existing automations that do not explicitly override this input.
-- **Reply message:** optional HA template, evaluated after Actions. Leave it empty
-  for no custom reply. Actions may be empty for a query-only automation.
-- **Reply speaker:** leave empty to use the speaker from this triggering event,
-  or explicitly choose another single official Alexa device. Invalid choices do
-  not fall back to another speaker. Speaker groups are not standard reply targets;
-  use ordinary HA actions for intentional broadcasts.
-- **Advanced reply settings / Reply mode:** Speak by default; Announce adds its
-  announcement sound. Entity existence does not verify the device's sound behavior.
+- **Attempt to interrupt the native reply:** on by default; attempts source Stop
+  only for matched, authorized events, and may stop music. Disable where unwanted.
+- **Sensors to report:** optionally select one or more sensors; with blank Reply
+  message, generate a report from their HA-recorded values after Actions.
+- **Reply message:** optional text or HA template, evaluated after Actions. A
+  nonblank custom reply overrides selected sensors. Clear both inputs for silence.
+- Replies always use normal **Speak on the source speaker**. Reply speaker and
+  Reply mode inputs have been removed. Saved `reply_device`/`reply_mode` no longer
+  change this behavior; adjust consumers that depended on another device or Announce.
 
-For example, set a reply template such as `The recorded value is
-{{ states('sensor.example_value') }}` after replacing the example entity with your
-own. Sensor selection, units, missing-value wording and sampling-age policy are
-household automation concerns. No brand or room rules are built into the integration.
+See [simple sensor setup](reply-simplification.md) for generated report examples,
+units, text states and unavailable readings. No household brand or room is built in.
+The advanced resolver API below remains available for ordinary HA automations.
 
 ### Adapt a sensor query without changing the integration
 
 Create an automation from the matching Blueprint. Select your voice event entities,
 enter the exact recognized phrases (including a wake-word variant when present),
-and leave Actions empty if the automation only answers a question. Paste a reply
-template into Reply message; leave Reply speaker empty for the triggering speaker.
+and leave Actions empty if the automation only answers a question. Select sensors and leave Reply message blank for the generated report, or paste a
+custom template into Reply message for your own wording. Replies use the triggering speaker.
 For example, replace the placeholder entity in this template with your own:
 
 ```jinja
@@ -65,35 +60,36 @@ Preview the template in HA's template editor without assigning fake states to li
 sensors. A successful preview is not evidence that Alexa spoke, stopped its native
 reply or delivered the message.
 
-The call order is Stop on source A, your Actions, then optional notify on reply B.
-Choosing B never adds a Stop on B. Templates read the data after Actions, not at
+The call order is Stop on the source, your Actions, then optional Speak on that
+same source. Templates read the data after Actions, not at
 trigger time. Strings and finite numbers become text; null or whitespace is not
 spoken. Lists, mappings, booleans and other invalid reply results do not become
 spoken dumps. Template errors do not undo already-completed household effects.
 
 ## Migration and rollback
 
-1. Save the current component directory, the **actual imported Blueprint file and
-   its path**, every affected automation's full configuration, and enabled states.
-   Keep these private. A URL or example automation is not a backup.
-2. Disable overlapping phrase consumers; preserve unrelated integrations and shared
-   household scripts. Install the v0.2.0 component, restart HA, and separately update
-   the Blueprint from the [same tag](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.2.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)
-   at the existing import path. HACS does not update imported Blueprints.
-3. Validate configuration, read back both installed sources, reload automations,
-   and enable consumers one at a time. Verify their real effects. Interruption is
-   enabled by default even when an older automation omits the new input; set it
-   false where Stop is unwanted. Blank reply text does not disable Stop.
-4. To roll back, disable affected consumers and restore the saved component,
-   original Blueprint at its original path, and full automation configs/enabled
-   states **together**. The [v0.1.0 source](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.1.0)
-   remains available. Replace the complete component directory so new files such
-   as `targets.py` and `services.yaml` do not remain in a v0.1.0 installation.
-5. Restart HA, validate and reload, check reception, and test the original phrases.
-   Preserve official account configuration, BLE consumers and shared household
-   helpers/scripts. Check Core/client compatibility before restoring; do not
-   downgrade Core to satisfy the old integration. Already-enqueued Amazon commands
-   cannot be recalled by this rollback.
+1. Save the actual component directory, imported Blueprint file/path and every
+   affected automation's complete config and enabled state. Keep backups private.
+2. Review old `reply_device` and `reply_mode` settings. The v0.3.0 Blueprint always
+   uses source Speak, so explicitly redesign any cross-speaker/Announce consumers
+   with ordinary HA actions before switching; do not silently assume old routing.
+3. Disable affected/overlapping consumers. Install the v0.3.0 component, restart HA
+   if replacing component files, and separately replace the Blueprint from the
+   [same tag](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)
+   at the original import path. HACS does not update imported Blueprints.
+4. Remove obsolete reply-device/mode inputs. Select sensors for an automatic report,
+   or retain your custom Reply message; the new sensor input defaults empty. Keep
+   Stop explicitly false where unwanted. Validate, reload, read back installed
+   sources/configs and enable consumers individually; verify their actual effects.
+5. To roll back, disable affected consumers and restore the saved component,
+   original Blueprint at its original path and complete configs/enabled states.
+   [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0)
+   remains available. A Blueprint-only candidate trial requires only that file and
+   its consumer configs/states to be restored; don't perform a full HA restore.
+6. Restart only if restoring component files, validate/reload, then check reception
+   and original phrases. Preserve official login and unrelated household services.
+   Check Core/client compatibility before restoring; do not downgrade Core or assume
+   already-submitted Amazon commands can be recalled.
 
 ## Fresh work only
 

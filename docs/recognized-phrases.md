@@ -1,9 +1,9 @@
 # Choose and verify recognized phrases
 
 Use this guide when a voice query sometimes does nothing, or before adding a new
-phrase to the Blueprint. It applies to both v0.2.0 and the development Blueprint.
+phrase to the Blueprint. It applies to both v0.2.0 and v0.3.0.
 Keep the component and imported Blueprint on the same fixed version; this guide
-does not require installing development code.
+does not require changing versions.
 
 ## Start with a clear phrase
 

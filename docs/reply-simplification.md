@@ -1,10 +1,8 @@
-# Simplified replies (unreleased)
+# Simplified replies (v0.3.0)
 
-This describes the development Blueprint, not the published v0.2.0 Blueprint.
-The short-phrase playback failure is still under investigation. Passing software
-tests does not establish reliable speaker playback. A Blueprint-only candidate
-installation has [scoped Uxbridge checks](hardware-simplified-replies.md); native
-interruption and the earlier matched-Speak failure remain unresolved.
+Use the v0.3.0 component and Blueprint together. The Blueprint-only candidate has
+[scoped Uxbridge checks](hardware-simplified-replies.md); native interruption and
+the earlier matched-Speak audio failure remain known limitations.
 
 ## Configure without a template
 
@@ -53,7 +51,7 @@ Speak. Review automations that previously depended on those options. Ordinary
 HA actions and the advanced read-only resolver API remain available.
 
 The v0.2.0 release tag is unchanged. Do not treat its hardware acceptance as
-validation of this development Blueprint. Service completion still does not prove
+validation of this release. Service completion still does not prove
 that Amazon accepted or played the speech, or that native follow-up stopped.
 
 ## Scope of this change

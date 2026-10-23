@@ -12,5 +12,5 @@
   "integration_type": "hub",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/vincent97277/ha-alexa-voice-events/issues",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
