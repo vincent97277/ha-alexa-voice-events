@@ -77,6 +77,57 @@ async def test_first_matching_voice_runs_the_selected_action(hass, upstream, rem
     assert calls == [text]
 
 
+async def test_phrase_without_wake_word_matches_prefixed_event(hass, upstream, remote_history):
+    _entry, event_id, calls = await install_blueprint(
+        hass, upstream, inputs={"phrases": "turn the bedroom lights on"}
+    )
+    text = "Alexa turn the bedroom lights on"
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000), text=text)]
+    }
+    await push(hass, upstream)
+    assert calls == [text]
+    assert hass.states.get(event_id).attributes["voice_command"] == text
+
+
+@pytest.mark.parametrize(
+    ("phrases", "text", "matched"),
+    [
+        ("turn the light on", "turn the light on", True),
+        ("alexa turn the light on", "turn the light on", True),
+        ("alexa turn the light on", "alexa turn the light on", True),
+        ("  ALEXA   turn the light ON  ", " ALEXA\tturn the light on ", True),
+        ("turn the light on", "Alexa\nturn the light on", True),
+        ("alexa turn the light on\nturn the light on", "alexa turn the light on", True),
+        ("turn the light on", "Alexa, turn the light on", False),
+        ("turn the light on", "alexa turn the light on.", False),
+        ("light on, please", "alexa light on, please", True),
+        ("light on please", "alexa light on, please", False),
+        ("turn the light on", "alexandra turn the light on", False),
+        ("tell a story", "tell alexa a story", False),
+        ("tell alexa a story", "alexa tell alexa a story", True),
+        ("turn the light on", "echo turn the light on", False),
+        ("turn the light on", "alexa alexa turn the light on", False),
+        ("turn the light on", "alexa turn the light on never mind", False),
+        ("turn the light on never mind", "alexa turn the light on never mind", True),
+        ("alexa", "alexa", False),
+        ("  \n\t", "alexa", False),
+        ("alexa\nturn the light on", "alexa", False),
+        ("alexa", "alexa turn the light on", False),
+    ],
+)
+async def test_wake_word_matching_boundaries_preserve_event_text(
+    hass, upstream, remote_history, phrases, text, matched
+):
+    _entry, event_id, calls = await install_blueprint(hass, upstream, inputs={"phrases": phrases})
+    remote_history.return_value = {
+        "alexaHistoryRecords": [history_row(int(dt_util.utcnow().timestamp() * 1000), text=text)]
+    }
+    await push(hass, upstream)
+    assert calls == ([text] if matched else [])
+    assert hass.states.get(event_id).attributes["voice_command"] == text
+
+
 async def test_unmatched_speech_off_switch_and_reload_do_not_replay(
     hass, upstream, remote_history, freezer
 ):

@@ -1,8 +1,8 @@
-# Simplified replies (v0.3.0)
+# Simplified replies (v0.3.1)
 
-Use the v0.3.0 component and Blueprint together. The Blueprint-only candidate has
-[scoped Uxbridge checks](hardware-simplified-replies.md); native interruption and
-the earlier matched-Speak audio failure remain known limitations.
+Use the v0.3.1 component and Blueprint together. Earlier reply behavior has [scoped Uxbridge checks](hardware-simplified-replies.md).
+The user confirmed the prior audio investigation resolved and closed. The new
+v0.3.1 matching and Help links have software checks, not new hardware acceptance.
 
 ## Configure without a template
 

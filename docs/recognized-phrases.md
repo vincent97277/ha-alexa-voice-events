@@ -1,7 +1,7 @@
 # Choose and verify recognized phrases
 
 Use this guide when a voice query sometimes does nothing, or before adding a new
-phrase to the Blueprint. It applies to both v0.2.0 and v0.3.0.
+phrase to the Blueprint. This is the v0.3.1 matching guide.
 Keep the component and imported Blueprint on the same fixed version; this guide
 does not require changing versions.
 
@@ -22,10 +22,13 @@ guaranteed. Adding filler words alone does not establish better recognition.
    utterance makes it harder to pair the audible result with the correct event.
 3. Inspect the selected voice event's `voice_command` and source time, then the
    automation trace. A previous event left on screen is not a new recognition.
-4. Add the exact text to **Recognized phrases**, one phrase per line. Include the
-   wake word only in variants where it appears in the actual text. Matching ignores
-   case and repeated whitespace; it does not infer intent, correct spelling, remove
-   punctuation or translate phrases.
+4. Enter the recognized phrase in **Recognized phrases**, one per line, without
+   a leading Alexa. v0.3.1 ignores one leading standalone Alexa on both sides,
+   as well as case and repeated whitespace. Old prefixed entries still work.
+   The prefix must be separated by whitespace; `Alexa, ...` keeps its comma.
+   Other punctuation, spelling and suffixes stay literal. Event text stays original.
+   Versions through v0.3.0 required exact wake-word variants; this exception starts
+   with v0.3.1. See [examples and never mind caveats](../README.md#recognized-phrases).
 5. Test each candidate repeatedly, pairing every attempt with its own event and
    trace. Before calling a setup verified, get at least three consecutive complete
    results with acceptable response time. Record failures too; three successes do

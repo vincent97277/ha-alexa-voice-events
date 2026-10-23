@@ -1,10 +1,9 @@
-# Interruption and replies (v0.3.0)
+# Interruption and replies (v0.3.1)
 
-Use the v0.3.0 component and Blueprint together. The Blueprint matches hardware
-candidate `88ad028`; [scoped Uxbridge checks](hardware-simplified-replies.md) cover
-sensor reports, existing custom replies, household actions and unmatched native
-requests. Native interruption and earlier matched-Speak audio failures remain
-known limitations. Already-submitted speech cannot be recalled.
+Use the v0.3.1 component and Blueprint together. Earlier reply behavior has
+[scoped Uxbridge checks](hardware-simplified-replies.md); v0.3.1 adds prefix matching
+and field Help links without new hardware acceptance. The user confirmed the prior
+audio investigation resolved and closed. Already-submitted speech cannot be recalled.
 
 ## Configure an automation
 
@@ -32,7 +31,7 @@ The advanced resolver API below remains available for ordinary HA automations.
 ### Adapt a sensor query without changing the integration
 
 Create an automation from the matching Blueprint. Select your voice event entities,
-enter the exact recognized phrases (including a wake-word variant when present),
+enter the recognized phrases without a leading Alexa (old prefixed entries still work),
 and leave Actions empty if the automation only answers a question. Select sensors and leave Reply message blank for the generated report, or paste a
 custom template into Reply message for your own wording. Replies use the triggering speaker.
 For example, replace the placeholder entity in this template with your own:
@@ -73,17 +72,19 @@ spoken dumps. Template errors do not undo already-completed household effects.
 2. Review old `reply_device` and `reply_mode` settings. The v0.3.0 Blueprint always
    uses source Speak, so explicitly redesign any cross-speaker/Announce consumers
    with ordinary HA actions before switching; do not silently assume old routing.
-3. Disable affected/overlapping consumers. Install the v0.3.0 component, restart HA
+3. Disable affected/overlapping consumers. Install the v0.3.1 component, restart HA
    if replacing component files, and separately replace the Blueprint from the
-   [same tag](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)
+   [same tag](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)
    at the original import path. HACS does not update imported Blueprints.
-4. Remove obsolete reply-device/mode inputs. Select sensors for an automatic report,
+4. Existing prefixed phrases remain valid. Review equivalent phrases across
+   automations before removing redundant variants; general punctuation is still literal.
+   Remove obsolete reply-device/mode inputs. Select sensors for an automatic report,
    or retain your custom Reply message; the new sensor input defaults empty. Keep
    Stop explicitly false where unwanted. Validate, reload, read back installed
    sources/configs and enable consumers individually; verify their actual effects.
 5. To roll back, disable affected consumers and restore the saved component,
    original Blueprint at its original path and complete configs/enabled states.
-   [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0)
+   [v0.3.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0)
    remains available. A Blueprint-only candidate trial requires only that file and
    its consumer configs/states to be restored; don't perform a full HA restore.
 6. Restart only if restoring component files, validate/reload, then check reception

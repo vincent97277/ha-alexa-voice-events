@@ -1,77 +1,156 @@
+<p align="center"><img src="custom_components/alexa_voice_events/brand/icon.png" alt="Alexa Voice Events 圖示" width="160"></p>
+
 # Alexa Voice Events
 
 [English](README.md)
 
-將 Alexa 語音事件交給 Home Assistant 自動化處理。選擇官方 Alexa Devices 已登入的帳號與音箱，再用 Blueprint 或 HA 自動化設定口令與動作。
+將 Alexa 聽到的文字交給 Home Assistant 執行動作，也能在原發話音箱播報 HA 資訊。
+重用既有 **Alexa Devices** 帳號，不必再次登入 Amazon、建立 Custom Skill 或另存語音歷史。
 
-## 開發狀態與支援版本
+**Alexa 辨識 → 語音事件 → 你的 HA 自動化 → 可選的語音回覆。**
+家庭規則留在 HA。本專案是社群整合，並非 Amazon 或 Home Assistant 官方整合。
 
-**v0.3.0** 簡化 Blueprint 回覆：選感測器即可自動產生回答，或填入自訂文字／模板。回覆固定以 Speak 送回本次發話音箱；Reply speaker／Reply mode 已移除，更新前請讀[遷移說明](docs/reply-simplification.md#updating-existing-automations)。感測器報告、既有模板、家庭燈光與原生問句有 [Uxbridge 限定驗收](docs/hardware-simplified-replies.md)。原生中止仍不可靠，這版不宣稱修復先前已呼叫 Speak 卻音訊不完整的問題；見[版本說明](docs/releases/v0.3.0.md)。
+[安裝](#安裝) · [設定](#設定) · [Blueprint](#blueprint) · [口令建議](#recognized-phrases) · [FAQ](#faq) · [更新與回復](#更新與回復)
 
-需要 **HA Core 2026.10.2**、官方 **Alexa Devices** 與 **aioamazondevices 16.3.2**。先完成官方整合登入。本整合重用其 API，不要求另一組憑證，也不開第二條連線。其他版本須經重新審查與測試；不要為本整合降級 Core。
+## 使用前提
 
-## 中止與回覆
-
-1. 從同版 Blueprint 建立自動化，選發話事件與逐行辨識口令，設定家庭 Actions；純查詢可留空。
-2. 在 **Sensors to report** 選感測器，**Reply message** 留空，即可依 Actions 後的 HA 記錄值回答。
-3. 需要自訂句型時填入 Reply message；非空文字／模板優先於感測器報告。可參考[數值模板](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)。
-4. 要完全不播 HA 回覆，同時清空感測器與 Reply message。Stop 是獨立開關，**預設開啟**，也可能停止音樂。
-
-感測器名稱與單位沿用 HA，生成文字以英文為主；不自動換單位、調精度或推測採樣時間。缺值與無效數值明說 unavailable，不補成 0；真正的 0 仍可有效。[簡單設定](docs/reply-simplification.md)與[完整動作及限制](docs/replies.md)提供細節。
-
-口令選有明確語境的自然句子，核對 `voice_command`，再加入可接受的實際字面變體。HA 口令不會訓練 Alexa；沒有逐字稿、未匹配及已呼叫 Speak 卻沒完整聲音須分開排查，見[口令指南](docs/recognized-phrases.md)。
-
-每個受管理步驟前仍檢查事件、session、接收與十五秒期限；已開始的家庭 Actions 不強制中止，已送往 Amazon 的命令無法撤回。服務返回不代表停止追問或播完。`resolve_targets` 的進階唯讀 API 保留，使用者仍可自行組合一般 HA actions。
-
-更新前備份實際元件、Blueprint、所有消費者設定與啟用狀態；**HACS 不會更新既有 Blueprint**。舊 `reply_device`／`reply_mode` 不再影響新版 Blueprint，依賴跨音箱或 Announce 的自動化需先調整。回復時同步還原原版本及設定；本次不新增重試、固定延遲或語音糾字功能。
+- **Home Assistant Core 2026.10.2**，已設定並登入官方 **Alexa Devices**，其 client 為 **aioamazondevices 16.3.2**。
+- 帳號下的音箱。Marshall Uxbridge 有[限定實機證據](docs/hardware-simplified-replies.md)，其他音箱或接收方式需明確同意使用未驗證設定。
+- 其他 Core／client 組合須另經查核與測試，不要為此降級 Core。見[相容性](docs/compatibility.md)。
 
 ## 安裝
 
-選擇一種方式：
+選一種方式，完成後重新啟動 HA：
 
-- **手動：**下載專案，僅將 `custom_components/alexa_voice_events` 複製到 HA 設定目錄的 `custom_components/` 下（通常是 `/config/custom_components/alexa_voice_events`），重新啟動 HA。
-- **HACS 自訂儲存庫：**HACS → ⋮ → 自訂儲存庫，新增 `https://github.com/vincent97277/ha-alexa-voice-events`，類別選 **Integration**，下載 Alexa Voice Events，再重新啟動 HA。本專案未加入 HACS 預設商店；需要固定版本時選正式 tag；若改選預設分支，則是會隨開發更新的程式。
+| 方式 | 步驟 |
+| --- | --- |
+| HACS 自訂儲存庫 | HACS → ⋮ → 自訂儲存庫 → 加入 `https://github.com/vincent97277/ha-alexa-voice-events`，類別 **Integration** → 下載 Alexa Voice Events **v0.3.1**。本專案未加入預設商店。 |
+| 手動 | 下載 [v0.3.1 source ZIP](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.3.1.zip)，只將 `custom_components/alexa_voice_events`（含 `brand`）放入 HA 設定目錄的 `custom_components/`，通常是 `/config/custom_components/alexa_voice_events`。 |
 
-在 HA → 設定 → 裝置與服務 → 新增整合，選 **Alexa Voice Events**，選取既有 Alexa Devices 帳號與音箱。每個帳號最多一個項目，可選多個音箱；其他帳號另加項目，不能跨帳號選音箱。
+## 設定
 
-下載 [v0.3.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0) 或[原始碼 ZIP](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.3.0.zip)。Blueprint 與實測候選 `88ad028` 相同，Python 行為沿用 v0.2.0，版本 metadata 為 0.3.0；候選 Blueprint 安裝不等於透過 HACS 安裝正式 tag。保留 [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0) 及實際備份，依[回復步驟](docs/replies.md#migration-and-rollback)處理。
+1. 開啟 **設定 → 裝置與服務 → 新增整合 → Alexa Voice Events**。
+2. 選擇既有 Alexa Devices 帳號與一個或多個音箱。一個帳號一個 AVE 項目，其他帳號另加項目。
+3. 在整合「設定」檢查接收方式。Uxbridge 建議 `volume_push`；未知音箱預設 `native`，啟用前須勾選 **Explicitly allow this unverified speaker / method**。覆寫已知型號建議方式也需要此同意。
+4. 音箱原有 HA 裝置下會增加語音事件、接收開關與診斷感測器。`ready` 只表示本機就緒；關接收會阻止新的受管理動作，重開不補播舊口令。
 
-## 設定與日常使用
+`native` 觀察官方整合更新，`volume_push` 依音箱推送觸發歷史查詢，沒有閒置時持續輪詢歷史。細節見[接收架構](docs/architecture.md)。
 
-整合的「設定」可新增／移除音箱或調整接收方式。`native` 接收官方整合更新；`volume_push` 由對應音箱推送觸發歷史讀取，沒有閒置輪詢與手動試驗視窗。
+## Blueprint
 
-Marshall Uxbridge 依已記錄的 Uxbridge 查核建議 `volume_push`，首次選取會啟用；這不代表其他實體音箱或接收方式已驗證。未知音箱預設 `native`；未知音箱或覆寫已知設定時，須勾選 **Explicitly allow this unverified speaker / method** 才能啟用。接收開關不能繞過同意。診斷的 `validation_scope` 為 `uxbridge_volume_push` 或 `unverified`。實機範圍由 [驗收報告](docs/hardware-acceptance.md)記錄，不再在每個安裝中寫死 pending 標記。
-
-每個音箱有接收開關、語音事件及診斷感測器，關閉、移除或更改方式只撤銷該音箱舊 session。接收意圖可跨重新啟動保存；關閉後不會自行開啟。帳號/API 重新連線會換新 session，還原的舊事件不會觸發動作。狀態包含 `disabled`、`ready`、`waiting`、`error`、`unsupported`；`ready` 只代表本機準備完成。
-
-相容路徑每次最多兩個請求、每個最多二十秒，共用帳號 worker 並保留來源身分。失敗後等待 30／60／120／240 秒（上限 240 秒），五次連續失敗轉為 `error`；需期限後的新推送才重試，成功空結果亦重設失敗次數。沒有自主歷史重試輪詢。帳號狀態以 HA 通知與每五秒的本機 API 身分檢查觀察。結構不支援或 hook 所有權衝突會停止受影響路徑，保留官方整合；錯誤為固定代碼，不洩漏原始例外。更多狀態與復原細節見 [English README](README.md#current-behavior)。
-
-## 匯入 Blueprint
-
-HA → 設定 → 自動化與場景 → Blueprint → 匯入，貼上：
+先安裝整合，再到 **設定 → 自動化與場景 → Blueprint → 匯入**，貼上固定版本 URL：
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
-匯入與整合安裝彼此獨立，不會自動建立家庭自動化。從 Blueprint 建立自動化，選音箱的語音事件、每行填一個完整口令，再選 HA 動作。比對會去除首尾空白、合併空白並轉小寫；若實際文字含 `alexa`，口令也要包含。複雜情境用 HA 自動化；官方 Alexa Devices 的播報等動作可直接在 HA 使用。
+[檢視／下載 Blueprint](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml)。
+從它建立自動化，設定以下六個欄位。安裝／匯入本身不會自動建立家庭自動化；欄位旁的 **Help** 連到同版英文說明，英文頁首可切到繁中。
 
-預設 `queued`、`max: 10`，可在建立後的自動化 YAML 調整。排隊動作執行前重新檢查十五秒內的新鮮度、接收開關與 session；已執行中的任意使用者動作由 HA 管理。切換家庭動作時停用重疊的舊接收者，避免重複執行。
+### Speakers' voice event entities
 
-語音文字遵循 HA recorder 政策，無額外歷史資料庫。家庭場景、裝置品牌的家庭規則、碼表量測及音樂恢復均交給 HA。v0.3.0 Blueprint 以固定候選安裝並實測，與正式 tag／HACS 安裝分開記錄；精確版本與限制見[本輪驗收](docs/hardware-simplified-replies.md)；排錯先看接收狀態／錯誤，再到 [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues) 提供版本與重現步驟，遮蔽語音及帳號／裝置識別資訊。
+選一個或多個 **Alexa Voice Events 的 event 實體**，不是 media player。
+回覆固定以一般 **Speak 送到本次發話音箱**，不需序號或回覆模式設定。
 
-## 開發與授權
+### Recognized phrases
 
-測試環境：Python **3.14.6**、HA **2026.10.2**、pytest-homeassistant-custom-component **0.13.373**、aioamazondevices **16.3.2**；精確相依版本記於 `uv.lock`。
+**每行一個口令，不加開頭的 `alexa`。** 實際發話仍使用音箱喚醒詞，設定口令時省略即可。
 
-```sh
-uv sync --locked
-uv run pytest
-uv run mypy
-uv run ruff check .
-uv run ruff format --check .
+可優先嘗試以下範例，再接到你自己的動作或感測器：
+
+```text
+turn the bedroom lights on
+turn the bedroom lights off
+tell me the bedroom temperature
 ```
 
-測試使用真實 HA 設定、實體生命週期與自動化／Blueprint 引擎，以及上游 coordinator／dispatcher／parser；控制遠端回應、時鐘與官方 Stop／notify 服務邊界，不呼叫 Amazon 音箱；禁用外部 socket，使用合成資料。這證明軟體行為，不代表 Amazon 傳遞、實體動作或其他音箱已驗證。CI 另以 hassfest 與 HACS action 驗證封裝；HACS 的品牌商店檢查不適用自訂儲存庫，因此略過 `brands`。
+不同動作各建自動化。以上是建議範例，不是內建功能，也不保證辨識結果。
 
-[Apache-2.0](LICENSE)，來源與第三方歸屬見 [NOTICE](NOTICE)。測試執行安裝的相依套件，未散佈上游 parser 摘錄或家庭錄音。相容邏輯由原本本機實作重構，已移除家庭依賴。
+比對忽略大小寫、重複空白及兩側**開頭一次、獨立一字的 `alexa`**。
+原本含前綴的設定也能繼續用，不必再寫兩行。原始事件 `voice_command` 保留供排錯。
+前綴須以空白分隔；`Alexa, ...` 的逗號不會因此被移除。
+
+其餘仍是字面比對，包含標點、拼寫及後綴。建議先用無標點口令，再核對實際逐字稿。
+例如 `light on, please` 只有在辨識文字也含逗號時才匹配，與 `light on please` 不同。
+不自動把 bridge 改成 fridge，不刪句中的 Alexa，不處理其他喚醒詞，也不猜語意。
+
+**辨識建議。** 本案例 fridge 曾被辨識成 bridge。完整且相關的語境可能幫助辨識，
+例如用 `where is the fridge` 取代單字 `fridge`、用 `turn the bedroom lights on` 取代 `light on`。
+這不保證長句更準或 Alexa 一定會糾正發音，加入贅詞也未必有用；在 HA 填口令不會訓練 Alexa。
+[依據與排錯](docs/recognized-phrases.md)。
+
+**可選實驗：never mind。** 可自行測試句尾加上 `never mind`，例如
+`turn the bedroom lights on never mind`，嘗試減少原生互動。若採用，將實際完整逐字稿（含後綴）填入口令。
+它也可能被當成取消、改變逐字稿或沒有預期效果，不能保證既避開原生回答又保留 HA 指令。
+另說一句取消也不能假設尚未執行的工作會繼續。[Amazon CancelIntent 文件](https://developer.amazon.com/en-US/docs/alexa/custom-skills/standard-built-in-intents.html)
+說明的是 Custom Skill 的取消意圖，不足以證明本方案句尾技巧必定有效。
+
+### Attempt to interrupt the native reply
+
+**預設開啟。** 口令匹配且授權有效時，在 Actions 前嘗試停止發話音箱；**也可能停止音樂**，不需要時可關閉。
+
+此整合觀察辨識後的歷史，並未透過 [Custom Skill 互動模型](https://developer.amazon.com/en-US/alexa/alexa-skills-kit/get-deeper/custom-skills)接管對話，
+因此 Alexa 仍可能原生回答或追問。推送／歷史可用性、HA 處理及網路會造成延遲，中止可能要數秒，
+不是固定或至少三秒，也沒有成功保證。Stop 動作返回不代表對話已結束。
+
+### Sensors to report
+
+選感測器（例如溫度與濕度），**Reply message 留空**，內建模板就會在 Actions 後產生回答：
+
+> Home Assistant reports: Room temperature is 22.1 °C; Room humidity is 43 %.
+
+沿用 HA 目前記錄的名稱、數值與單位；名稱可為中文，報告句型為英文。
+不自動翻譯名稱、換單位、調精度或宣稱剛剛採樣。缺值與無效量測明說 unavailable，不當作零；真正的零有效。
+一般文字感測器可照讀文字。自訂格式使用 Reply message。
+
+### Reply message
+
+可填固定文字或 HA 模板。**非空自訂訊息優先於 Sensors to report**；兩欄可同時設定，但只使用自訂訊息。
+要完全不播報，同時清空兩欄；Stop 仍獨立控制。
+
+- 固定文字：`The fridge is in the kitchen.`
+- 模板：`Home Assistant reports {{ states('sensor.example_value') }}.`
+
+將範例實體換成自己的。一般讀值優先使用感測器選擇，它已處理缺值；需要數值格式時參考
+[有驗證的量測模板](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)，不要把缺值轉成零。
+可先在 HA 模板編輯器預覽。資料在 Actions 完成後讀取，而非固定在觸發當下。
+
+### Actions
+
+選擇一般 HA 動作，例如開燈或執行腳本；只查感測值時可留空。
+請求順序是 **嘗試停止來源音箱 → 家庭 Actions → 可選的來源音箱 Speak**。
+
+避免多個自動化使用重疊口令，包含省略 Alexa 後相同的口令。同一自動化內多行匹配仍只執行一次；不同自動化仍各自執行。
+每步前重新確認接收、session、事件及十五秒期限；同音箱的新事件取代待執行舊工作。
+已開始的 Actions 及送往 Amazon 的命令不能撤回。[詳細行為](docs/replies.md)。
+
+## 更新與回復
+
+元件與 Blueprint 維持**同一固定版本**。**HACS 不會更新已匯入的 Blueprint**。
+先備份實際元件、Blueprint 內容／路徑及所有消費者設定／啟用狀態；替換、驗證後逐個啟用。
+
+v0.3.1 相容原有含前綴口令，可在核對跨自動化重疊後刪除多餘變體。
+`reply_device`／`reply_mode` 在 v0.3.0 已移除，依賴它們的消費者需先調整。
+回復時同步還原原檔及完整設定；[v0.3.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0) 保留。
+[完整遷移／回復](docs/replies.md#migration-and-rollback)。
+
+## FAQ
+
+**這會取代 Alexa 或改善辨識器嗎？** 不會。Amazon 仍負責辨識及可能的原生互動，AVE 將文字交給 HA 規則。
+
+**沒動作先看哪裡？** 先看接收診斷，再核對新事件的 `voice_command`／來源時間及自動化 trace。
+沒有新事件本身不代表 Amazon 沒有逐字稿，見[口令排錯](docs/recognized-phrases.md)。
+
+**可以回到另一台音箱嗎？** 隨附 Blueprint 固定來源 Speak；進階路由可自行組合一般 HA actions 及[目標查詢 API](docs/replies.md#read-only-target-lookup-for-ordinary-ha-automations)。
+
+**排隊的每句都會執行嗎？** 不會。過期、被新事件取代或撤權的工作會退出。
+`queued` 是單一自動化的佇列，並非跨自動化音箱鎖。需要時可在自動化 YAML 改 `mode`／`max`，預設 queued／10。
+
+## 隱私、開發與授權
+
+語音事件含辨識文字，依 HA recorder 政策保存，沒有額外歷史資料庫。
+[回報問題](https://github.com/vincent97277/ha-alexa-voice-events/issues)時遮蔽語音、憑證與帳號／裝置識別資訊。
+
+[架構](docs/architecture.md) · [開發／測試](docs/development.md) · [版本說明](docs/releases/v0.3.1.md) · [實機範圍](docs/hardware-simplified-replies.md)
+
+[Apache-2.0](LICENSE) · [第三方說明與圖示來源](NOTICE)

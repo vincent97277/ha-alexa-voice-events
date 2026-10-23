@@ -7,9 +7,14 @@ implementation into an independent, generic Home Assistant integration.
 Household commands and trial/measurement workflows are not included.
 
 Interoperability and test dependencies (not vendored):
-- Home Assistant Core 2026.10.1, Home Assistant contributors, Apache-2.0:
-  https://github.com/home-assistant/core/tree/2026.10.1
+- Home Assistant Core 2026.10.2, Home Assistant contributors, Apache-2.0:
+  https://github.com/home-assistant/core/tree/2026.10.2
 - aioamazondevices 16.3.2, Simone Chemelli and contributors, Apache-2.0:
   https://github.com/chemelli74/aioamazondevices/tree/v16.3.2
 Tests execute installed dependencies with synthetic records and identifiers;
 no upstream parser excerpts or household recordings are redistributed.
+
+Project icon supplied by the maintainer for this integration. The original
+transparent PNG is preserved in assets/icon-original.png; brand/icon.png is a
+size-only derivative. Product names and marks identify interoperability and
+do not imply endorsement by Amazon or Home Assistant.

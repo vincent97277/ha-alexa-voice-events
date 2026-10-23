@@ -4,12 +4,15 @@ blueprint:
     Match literal Alexa Voice Events phrases and run your HA actions.
     Reception off, revoked sessions and stale queued events are rejected.
   domain: automation
-  source_url: https://github.com/vincent97277/ha-alexa-voice-events/blob/main/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+  source_url: https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
   homeassistant:
     min_version: "2026.10.2"
   input:
     voice_entities:
       name: Speakers' voice event entities
+      description: >-
+        Select AVE event entities. Replies use the triggering speaker.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#speakers-voice-event-entities)
       selector:
         entity:
           filter:
@@ -19,10 +22,10 @@ blueprint:
     phrases:
       name: Recognized phrases
       description: >-
-        One literal phrase per line. Case and repeated whitespace are ignored.
-        Include the wake-word prefix if it appears in the recognized text.
-        Prefer a clear phrase with context over an ambiguous single word; verify
-        the actual voice_command before adding variants. This does not train Alexa.
+        One phrase per line, without leading Alexa. Case, repeated whitespace and
+        one leading standalone Alexa are ignored; other punctuation stays literal.
+        Prefer a clear phrase with context and verify the actual voice_command.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#recognized-phrases)
       selector:
         text:
           multiline: true
@@ -31,6 +34,7 @@ blueprint:
       description: >-
         Best effort; may stop music too. A successful action is not confirmation
         that Alexa stopped talking or ended follow-up questions.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#attempt-to-interrupt-the-native-reply)
       default: true
       selector:
         boolean: {}
@@ -39,6 +43,8 @@ blueprint:
       description: >-
         Optional. Select sensors to build a reply without writing a template.
         Uses Home Assistant's recorded values after your actions.
+        A nonblank Reply message overrides this report.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#sensors-to-report)
       default: []
       selector:
         entity:
@@ -49,12 +55,16 @@ blueprint:
       name: Reply message
       description: >-
         Optional text or template, evaluated after your actions. Overrides the sensor
-        report. Leave blank to report selected sensors, or select no sensors for silence.
+        report. Clear both this message and Sensors to report for silence.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#reply-message)
       default: ""
       selector:
         template: {}
     actions:
       name: Actions
+      description: >-
+        Your HA actions, after optional Stop and before the reply. Leave empty for a query.
+        [Help](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/README.md#actions)
       default: []
       selector:
         action: {}
@@ -82,8 +92,10 @@ actions:
   - condition: template
     value_template: >-
       {% set text = envelope.get('voice_command', '') | trim | lower | regex_replace('\\s+', ' ') %}
+      {% set text = text | regex_replace('^alexa(?: |$)', '') | trim %}
       {% set phrases = configured_phrases.split('\n') | map('trim') | map('lower')
-          | map('regex_replace', '\\s+', ' ') | reject('eq', '') | list %}
+          | map('regex_replace', '\\s+', ' ') | map('regex_replace', '^alexa(?: |$)', '') | map('trim')
+          | reject('eq', '') | list %}
       {{ text in phrases }}
   - &voice_guard
     alias: Record current voice authorization reason

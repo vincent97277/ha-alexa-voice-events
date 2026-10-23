@@ -5,6 +5,14 @@ was installed and checked on one Marshall Uxbridge on **2026-10-23 (Asia/Taipei)
 v0.3.0 includes the same Blueprint. This report describes candidate installation,
 not a tagged HACS install, and does not establish reliability on another speaker.
 
+## Current closure status
+
+On 2026-10-23, after the later phrase and reply tests, the user confirmed the audio
+issue clarified, resolved and closed. The observations and limitations below record
+the earlier candidate phase, not a currently open audio ticket. v0.3.1 prefix
+matching, Help links and icon are new software/assets; no new physical or HA/HACS
+UI acceptance is claimed. v0.3.1 changes the Blueprint from this recorded candidate.
+
 ## Build and deployment
 
 HA Core 2026.10.2, Python 3.14.6 and HAOS 18.3 were read back. Only the imported
@@ -33,7 +41,8 @@ prefix and were rejected by the original household phrase lists. The other six
 matched events called the correct household action. Only the observed no-prefix
 `lights on` and `lights out` variants were added to those household lists before
 the successful three-round retry. This is a household configuration correction;
-the integration does not remove wake words or infer intent.
+that candidate did not remove wake words or infer intent. v0.3.1 adds only the
+leading Alexa comparison exception, without changing the original event text.
 
 The sensor-generated report included the entities' existing Chinese display names
 with English report wording and recorded units. The user confirmed clarity on this

@@ -1,99 +1,208 @@
+<p align="center"><img src="custom_components/alexa_voice_events/brand/icon.png" alt="Alexa Voice Events icon" width="160"></p>
+
 # Alexa Voice Events
 
 [繁體中文](README.zh-TW.md)
 
-Generic Alexa voice events for Home Assistant. Select an existing Alexa Devices account and speakers, then use a phrase-to-action Blueprint or ordinary HA automations to decide what happens.
+Use what Alexa heard to run Home Assistant actions and speak HA information back
+on the same speaker. Reuse an existing **Alexa Devices** account; no second Amazon
+login, Custom Skill or separate voice-history database is required.
 
-## Release status
+**Alexa recognition → voice event → your HA automation → optional spoken reply.**
+Household rules stay in HA. This is a community integration, not an official Amazon
+or Home Assistant integration.
 
-**v0.3.0** simplifies Blueprint replies. Select **Sensors to report** without a
-template, or enter optional custom text. Replies always use normal Speak on the
-speaker that produced the event. Reply speaker and Reply mode inputs are removed;
-review [migration notes](docs/reply-simplification.md#updating-existing-automations).
+[Install](#installation) · [Configure](#configuration) · [Blueprint](#blueprint) ·
+[Phrase tips](#recognized-phrases) · [FAQ](#faq) · [Update](#updates-and-rollback)
 
-Sensor reports, existing custom replies, household actions and unmatched native
-requests have [scoped Uxbridge evidence](docs/hardware-simplified-replies.md).
-Native interruption remains **unreliable**; earlier matched-Speak audio failures
-are not resolved. See [release notes](docs/releases/v0.3.0.md).
+## Requirements
 
-## Interruption and replies
-
-Select voice events and literal phrases, choose household Actions, then optionally
-select sensors. Leave **Reply message** blank for the generated report; a nonblank
-message/template overrides it. Clear both fields for no HA speech. Interruption
-is independent, defaults **on** and may stop music.
-
-[Simple setup](docs/reply-simplification.md), [phrase guidance](docs/recognized-phrases.md)
-and [configuration/API/limits](docs/replies.md) cover the complete flow. Keep the
-component and imported Blueprint on the same fixed release; updating HACS does not
-update an existing Blueprint.
+- Home Assistant Core **2026.10.2** with official **Alexa Devices** configured and
+  authenticated; its client must be **aioamazondevices 16.3.2**.
+- A speaker belonging to that account. Marshall Uxbridge has
+  [scoped hardware evidence](docs/hardware-simplified-replies.md); other speakers
+  and reception methods require explicit unverified opt-in.
+- Other Core/client combinations need review and tests. Do not downgrade Core to
+  satisfy this integration. See [compatibility](docs/compatibility.md).
 
 ## Installation
 
-Requires **Home Assistant Core 2026.10.2** and its official **Alexa Devices** integration using **aioamazondevices 16.3.2**. Add/authenticate the official integration first. Other Core/client combinations are unsupported until reviewed and tested; do not downgrade Core for this integration.
+Choose one method, then restart HA:
 
-Choose one installation method:
+| Method | Steps |
+| --- | --- |
+| HACS custom repository | HACS → ⋮ → Custom repositories → add `https://github.com/vincent97277/ha-alexa-voice-events`, category **Integration** → download Alexa Voice Events **v0.3.1**. This repository is not in the default HACS store. |
+| Manual | Download the [v0.3.1 source ZIP](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.3.1.zip). Copy only `custom_components/alexa_voice_events` into your HA configuration's `custom_components/` directory, normally `/config/custom_components/alexa_voice_events`. Include its `brand` directory. |
 
-- **Manual:** download this repository, copy only `custom_components/alexa_voice_events` into your HA configuration's `custom_components/` directory (normally `/config/custom_components/alexa_voice_events`), then restart HA.
-- **HACS custom repository:** in HACS → ⋮ → Custom repositories, add `https://github.com/vincent97277/ha-alexa-voice-events` with category **Integration**, download Alexa Voice Events, then restart HA. This project is not in the default HACS store. Install the tagged release for a fixed version; selecting the default branch instead uses changing development code.
+## Configuration
 
-In HA → Settings → Devices & services → Add integration, choose **Alexa Voice Events**, select an existing Alexa Devices account and its speakers. Configure reception as described below. No additional Amazon login is needed.
+1. Open **Settings → Devices & services → Add integration → Alexa Voice Events**.
+2. Select an existing Alexa Devices account and one or more speakers. Each account
+   has one AVE entry; add another entry for another account.
+3. Review reception methods in **Configure**. Uxbridge suggests `volume_push`;
+   unknown speakers default to `native` and require **Explicitly allow this
+   unverified speaker / method** before enabling. Overriding a known profile's
+   suggested method also requires opt-in.
+4. Each selected speaker gets a voice event, reception switch and diagnostics on
+   its existing HA device. `ready` means locally ready, not guaranteed delivery.
+   Turning reception off prevents new managed actions; re-enabling does not replay
+   old commands.
 
-Download [v0.3.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0) or its [source ZIP](https://github.com/vincent97277/ha-alexa-voice-events/archive/refs/tags/v0.3.0.zip). The Blueprint matches hardware candidate `88ad028`; Python behavior is unchanged from v0.2.0, with package metadata now 0.3.0. Candidate installation is separate from installing this tag through HACS. Keep [v0.2.0](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.2.0) and actual component/Blueprint/automation backups for [rollback](docs/replies.md#migration-and-rollback).
+`native` observes official integration updates; `volume_push` uses a matching push
+to fetch history. There is no continuous idle history polling. Details belong in
+[reception architecture](docs/architecture.md).
 
 ## Blueprint
 
-Open HA → Settings → Automations & scenes → Blueprints → Import Blueprint and paste:
+Install the integration first. In **Settings → Automations & scenes → Blueprints →
+Import Blueprint**, paste this fixed-version URL:
 
 ```text
-https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.0/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
+https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml
 ```
 
-Importing the Blueprint is independent of installing the integration. Create an automation from it, select the speakers' voice event entities, enter one literal phrase per line, and choose HA actions. Installing/importing creates no household automation automatically. Use ordinary HA automations for more complex rules; official Alexa Devices actions remain available in HA. Disable overlapping legacy consumers when switching household actions to this integration to avoid duplicate actions.
+[View / download Blueprint](https://github.com/vincent97277/ha-alexa-voice-events/blob/v0.3.1/blueprints/automation/alexa_voice_events/phrase_to_action.yaml).
+Create an automation from it and configure the following six inputs. Installing or
+importing alone creates no household automation. Each input includes a **Help**
+link back to its explanation here.
 
-## Current behavior
+### Speakers' voice event entities
 
-- Reuse official Alexa Devices authentication and its API instance; no new credentials.
-- Native reception observes the existing coordinator and uses genuine Amazon record timestamps; it never manufactures source times from HA state changes.
-- Compatibility preserves native volume processing and shares one fetch worker per account. A pending hint gets at most two attempts, each with a twenty-second timeout. Each dispatch has at most two requests; pending sources that arrive during the final attempt receive a turn after a one-second cooldown. Overlapping hints keep their source identities and finite attempt budget. There is no idle history polling or manual trial window.
-- Repair missing source association only when known device/source keys agree. Unknown/conflicting sources remain rejected by the real upstream parser.
-- Publish an event containing recognized text, source and receive times, opaque record/session identity, the HA device and its current reception control.
-- Each speaker has its own reception switch, session and diagnostic sensors. Off/on, removal and method changes revoke that speaker’s previous publication/action authority; other speakers keep their sessions. Switch intent persists independently of the options editor, so concurrent toggles and an open options form do not overwrite it. Fetch failures defer further compatibility work by 30/60/120/240 seconds, capped at 240 seconds. Before five consecutive failures the status is `waiting` during backoff; at five it becomes `error`. A later matching push can retry after the deadline; a successful fetch, including an empty one, resets the budget. Failed hints are discarded; there is no autonomous retry history polling. Native reception remains independent.
-- The Blueprint matches literal phrase variants after trimming, lowercasing and collapsing whitespace. Include `alexa` in a configured phrase if it appears in the observed text; no semantic or household intent mapping is performed.
-- Queued actions recheck freshness, switch state and session immediately before user actions. Already-running arbitrary user actions are not canceled by the receiver. HA automation mode is user-editable: open the created automation in YAML and override `mode` (default `queued`) and `max` (default `10`) to suit your action sequence.
+Select one or more **Alexa Voice Events event entities**, not media players.
+Replies always use normal **Speak on the speaker that produced the event**.
+No speaker serial number or reply-mode setting is needed.
 
-Account observation uses public HA entry-state notifications and a five-second check of local account/API identity. It never opens a second connection or polls history to detect recovery. Account loss/rebind revokes sessions before removing owned hooks/listeners and canceling/awaiting owned work. A missing/offline speaker revokes only its own session. Disabled intent remains disabled after startup and reload; recently restored voice attributes cannot create an action. Already-running user actions remain HA's responsibility. If a platform refuses unload, reception resumes with fresh authority and only successfully unloaded platforms are restored. HA still reports the failed unload and may require a restart; local resources are also cleaned on HA shutdown.
+### Recognized phrases
 
-Reception status distinguishes `disabled`, `ready`, `waiting`, `error` and `unsupported`; `ready` means local readiness, not guaranteed Amazon delivery. Diagnostic errors are fixed codes, never raw exception text. Compatibility diagnostics expose `consecutive_failures` and a UTC `retry_at`; empty fetches never advance the last received voice timestamp. `account_not_ready`/`account_unavailable`/`speaker_not_available` wait for the selected source. `unsupported_version` requires source review and tests for the installed Core/client combination; do not downgrade Core to satisfy this integration. `unsupported_structure` or `ownership_conflict` stops the affected path and leaves other reception methods and the official integration alone. Resolve competing hooks or changed upstream interfaces before reloading this integration. Only hooks still owned by this instance are restored.
+Enter **one phrase per line, without the leading `alexa`**. Say your normal wake
+word aloud; it does not belong in the configured phrase.
 
-Voice events contain text and follow HA recorder policy. There is no additional voice-history store, scene registry, Xiaomi dependency, measurement workflow or music-recovery logic.
+Good starting examples, to connect to your own actions or sensors:
 
-## Reception settings
-
-Use HA Core **2026.10.2** with **aioamazondevices 16.3.2**; unsupported combinations display an unsupported reception state and leave the official integration alone. Select the existing account and one or more voice-capable speakers, then review each speaker’s reception method. Add another integration entry for another existing account; cross-account selections and duplicate account entries are rejected.
-
-Use the integration’s **Configure** options to add/remove speakers or change methods. `native` observes official Alexa Devices history updates; `volume_push` uses matching speaker pushes to fetch history. Only the necessary method and opt-in choices are exposed; scheduling limits stay internal.
-
-The Marshall Uxbridge profile suggests `volume_push` using the documented Uxbridge checks. It starts enabled when first selected; this does not verify another physical speaker or another method. Unknown speakers default to `native`; they and overrides of a known profile’s suggested method stay disabled until **Explicitly allow this unverified speaker / method** is checked. A reception switch cannot bypass this opt-in. Tests/selection never promote a device to verified. The status sensor exposes `method` and `validation_scope` (`uxbridge_volume_push` or `unverified`). Hardware scope is recorded in the [acceptance report](docs/hardware-acceptance.md), rather than a hardcoded pending flag in every installation.
-
-Create an automation using it, choose one or more speakers’ voice events, enter one phrase per line and select HA actions. The event, switch and diagnostic sensors attach to the upstream physical device. No household automation is installed automatically.
-
-The v0.3.0 Blueprint has fixed-candidate hardware evidence in the [scoped report](docs/hardware-simplified-replies.md); this does not claim a tagged HACS installation. For troubleshooting, inspect reception status/error diagnostics first, then report the Core/client versions and reproduction steps through [issues](https://github.com/vincent97277/ha-alexa-voice-events/issues); redact voice text and account/device identifiers.
-
-## Tests and typing
-
-The target environment is Python **3.14.6**, HA **2026.10.2**, test plugin **0.13.373** and aioamazondevices **16.3.2**. The lockfile records exact resolved dependencies. The plugin's package metadata explicitly pins the required Core version; tests assert the Core/client versions.
-
-```sh
-uv sync --locked
-uv run pytest
-uv run mypy
-uv run ruff check .
-uv run ruff format --check .
+```text
+turn the bedroom lights on
+turn the bedroom lights off
+tell me the bedroom temperature
 ```
 
-Recovery tests exercise actual HA account unload/setup, API replacement with late callbacks, per-speaker availability/method changes, restore-storage startup, queue revocation after account rebind, timeout/backoff, ownership conflicts and unsupported paths. Tests cover multiple accounts (including equal raw speaker identifiers), same-name speakers, native and compatibility methods, opt-in, targeted selection changes, concurrent switch persistence, rename/device association, bounded cross-speaker handoff and queued Blueprint source snapshots. Tests use the real HA config/entity lifecycle and real automation/script engine, with a real upstream coordinator, dispatcher and parser. Remote history responses, clocks and the official Stop/notify service boundaries are controlled; Amazon speaker calls are not executed. The suite disables external sockets; synthetic source identifiers and phrases are not household recordings. These tests prove software behavior, not Amazon delivery, physical action success or other-speaker compatibility.
+Use different automations for different actions. These are examples, not built-in
+commands or guaranteed recognition results.
 
-## License and source
+Matching ignores case, repeated whitespace and **one leading standalone `alexa`**
+on either side. Existing phrases with `alexa` keep working; you do not need two
+lines. Event `voice_command` stays unchanged for diagnosis. The prefix must be
+separated by whitespace: `Alexa, ...` retains its comma and is not this exception.
 
-Apache-2.0. No upstream parser fixture is redistributed in this slice: tests execute the pinned installed client with synthetic responses. The source-association repair follows the previous local compatibility behavior, rewritten as an adapter without household dependencies. Upstream code remains covered by its own license: [aioamazondevices 16.3.2](https://github.com/chemelli74/aioamazondevices/tree/v16.3.2) and [HA Core 2026.10.2](https://github.com/home-assistant/core/tree/2026.10.2).
+Everything else is literal: punctuation, spelling and suffixes matter. Start with
+phrases without punctuation, then verify the actual `voice_command`. For example,
+`light on, please` matches only if the recognized text also contains the comma;
+`light on please` does not match it. The integration does not fix bridge to fridge,
+remove Alexa in the middle, strip other wake words or infer intent.
+
+**Recognition tips.** In our tests, fridge sometimes became bridge. A complete,
+relevant sentence can provide useful context, so try `where is the fridge` instead
+of the isolated word `fridge`, or `turn the bedroom lights on` instead of `light on`.
+This may help recognition; longer phrases and filler words are not a guarantee,
+and adding phrases in HA does not train Alexa. [Evidence and troubleshooting](docs/recognized-phrases.md).
+
+**Optional experiment: `never mind`.** Some users may try a suffix such as
+`turn the bedroom lights on never mind` to reduce native interaction. If you use
+it, configure the full text actually recognized, including that suffix. It can
+also be interpreted as cancellation or change the transcript; there is no guarantee
+that it suppresses Alexa while preserving the HA command. Do not assume a separate
+cancel request leaves queued work intact. [Amazon's CancelIntent documentation](https://developer.amazon.com/en-US/docs/alexa/custom-skills/standard-built-in-intents.html)
+concerns Custom Skills and does not establish this same-utterance technique here.
+
+### Attempt to interrupt the native reply
+
+**On by default.** For a matched, authorized event, attempt to stop the source
+speaker before your Actions. **It can stop music too.** Turn it off where unwanted.
+
+This integration observes recognized history instead of taking over Alexa's
+[Custom Skill interaction model](https://developer.amazon.com/en-US/alexa/alexa-skills-kit/get-deeper/custom-skills).
+Alexa may still answer or ask follow-up questions. Push/history availability,
+HA processing and the network add delay; interruption may take several seconds.
+Three seconds is not a fixed delay, minimum or guarantee. A returned Stop action
+is not proof that Alexa ended the conversation.
+
+### Sensors to report
+
+Select sensors, such as temperature and humidity, and leave **Reply message** blank.
+The Blueprint's built-in template generates a report after your Actions:
+
+> Home Assistant reports: Room temperature is 22.1 °C; Room humidity is 43 %.
+
+It uses HA's current recorded names, values and units. Names can be in your own
+language; report wording is English. It does not translate names, convert units,
+round values or claim a fresh sensor sampling time. Missing/invalid measurements
+are reported as unavailable; real zero remains valid. General text sensors can
+report their text. Use Reply message for custom formatting.
+
+### Reply message
+
+Optional fixed text or an HA template. **A nonblank custom message takes priority
+over Sensors to report.** Both inputs can be configured, but only the custom
+message is used. Clear both for no HA speech; interruption remains independent.
+
+- Fixed text: `The fridge is in the kitchen.`
+- Template: `Home Assistant reports {{ states('sensor.example_value') }}.`
+
+Replace the example entity with your own. Prefer the sensor selector for ordinary
+readings; it already handles unavailable measurements. For custom numeric wording,
+use the [validated measurement template](docs/replies.md#adapt-a-sensor-query-without-changing-the-integration)
+rather than converting missing readings to zero. Preview templates in HA's template
+editor. Values are read after Actions, not frozen at trigger time.
+
+### Actions
+
+Choose your usual HA actions, for example turning on selected lights or running a
+script. A sensor-only query can leave this empty. The request order is:
+**attempt source Stop → your Actions → optional source Speak**.
+
+Avoid overlapping phrase automations, including phrases now equivalent after
+removing Alexa. A matching phrase on several lines runs that automation once;
+separate matching automations still each run. Each managed step checks current
+reception, session, event identity and a fifteen-second deadline. A newer event
+from that speaker supersedes pending old work. Already-running Actions and
+commands submitted to Amazon cannot be recalled. [Detailed behavior](docs/replies.md).
+
+## Updates and rollback
+
+Keep the component and imported Blueprint on the **same fixed release**.
+**Updating HACS does not update an existing Blueprint.** Save the actual component,
+Blueprint path/content and all consumers' configurations/enabled states before
+replacing them; validate and enable one consumer at a time.
+
+v0.3.1 accepts existing prefixed phrases. You may remove redundant variants after
+checking for equivalent phrases across automations. Earlier `reply_device` and
+`reply_mode` options were removed in v0.3.0; review consumers that relied on them.
+For rollback, restore the saved sources and complete settings; the
+[v0.3.0 release](https://github.com/vincent97277/ha-alexa-voice-events/releases/tag/v0.3.0)
+remains available. [Full migration / rollback](docs/replies.md#migration-and-rollback).
+
+## FAQ
+
+**Does this replace Alexa or improve its recognizer?** No. Amazon still recognizes
+speech and may handle it natively. AVE publishes the text for HA rules.
+
+**Nothing happened. Where should I look?** Check reception diagnostics, a new event's
+`voice_command` and source time, then the automation trace. No new event is not by
+itself proof of a missing transcript. See the [phrase guide](docs/recognized-phrases.md).
+
+**Can HA reply on another speaker?** The supplied Blueprint uses the source speaker.
+For advanced routing, use ordinary HA actions and the [target lookup API](docs/replies.md#read-only-target-lookup-for-ordinary-ha-automations).
+
+**Does every queued command run?** No. Expired, superseded or revoked work is rejected.
+HA's `queued` mode is local to each automation; it is not a global speaker lock.
+Change `mode`/`max` in your created automation YAML if needed (defaults: queued / 10).
+
+## Privacy, development and license
+
+Voice events contain recognized text and follow HA recorder policy. There is no
+extra voice-history store. Redact voice text, credentials and account/device IDs
+when [reporting an issue](https://github.com/vincent97277/ha-alexa-voice-events/issues).
+
+[Architecture](docs/architecture.md) · [Development / tests](docs/development.md) ·
+[Release notes](docs/releases/v0.3.1.md) · [Hardware scope](docs/hardware-simplified-replies.md)
+
+[Apache-2.0](LICENSE) · [Third-party notices and icon provenance](NOTICE)
